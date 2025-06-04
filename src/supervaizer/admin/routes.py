@@ -18,6 +18,7 @@ from fastapi.security import APIKeyHeader
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 
+from fastapi.responses import Response
 from supervaizer.__version__ import API_VERSION
 from supervaizer.storage import (
     StorageManager,
@@ -28,7 +29,7 @@ from supervaizer.common import log
 from supervaizer.lifecycle import EntityStatus
 
 # Global log queue for streaming
-log_queue: asyncio.Queue = asyncio.Queue()
+log_queue: asyncio.Queue[Dict[str, str]] = asyncio.Queue()
 
 
 def add_log_to_queue(timestamp: str, level: str, message: str) -> None:
@@ -116,7 +117,7 @@ def create_admin_routes() -> APIRouter:
     @router.get("/", response_class=HTMLResponse)
     async def admin_dashboard(
         request: Request, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Admin dashboard page."""
         try:
             # Get stats
@@ -130,6 +131,7 @@ def create_admin_routes() -> APIRouter:
                     "stats": stats,
                     "system_status": "Online",
                     "db_name": "TinyDB",
+                    "data_storage_path": storage.db_path,
                 },
             )
         except Exception as e:
@@ -139,7 +141,7 @@ def create_admin_routes() -> APIRouter:
     @router.get("/jobs", response_class=HTMLResponse)
     async def admin_jobs_page(
         request: Request, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Jobs management page."""
         return templates.TemplateResponse(
             "jobs_list.html",
@@ -152,10 +154,49 @@ def create_admin_routes() -> APIRouter:
     @router.get("/cases", response_class=HTMLResponse)
     async def admin_cases_page(
         request: Request, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Cases management page."""
         return templates.TemplateResponse(
             "cases_list.html",
+            {
+                "request": request,
+                "api_version": API_VERSION,
+            },
+        )
+
+    @router.get("/server", response_class=HTMLResponse)
+    async def admin_server_page(
+        request: Request, authorized: bool = Depends(verify_admin_access)
+    ) -> Response:
+        """Server status and configuration page."""
+        return templates.TemplateResponse(
+            "server.html",
+            {
+                "request": request,
+                "api_version": API_VERSION,
+            },
+        )
+
+    @router.get("/agents", response_class=HTMLResponse)
+    async def admin_agents_page(
+        request: Request, authorized: bool = Depends(verify_admin_access)
+    ) -> Response:
+        """Agents management page."""
+        return templates.TemplateResponse(
+            "agents.html",
+            {
+                "request": request,
+                "api_version": API_VERSION,
+            },
+        )
+
+    @router.get("/console", response_class=HTMLResponse)
+    async def admin_console_page(
+        request: Request, authorized: bool = Depends(verify_admin_access)
+    ) -> Response:
+        """Interactive console page."""
+        return templates.TemplateResponse(
+            "console.html",
             {
                 "request": request,
                 "api_version": API_VERSION,
@@ -178,7 +219,7 @@ def create_admin_routes() -> APIRouter:
         limit: int = Query(50, le=100),
         skip: int = Query(0, ge=0),
         authorized: bool = Depends(verify_admin_access),
-    ):
+    ) -> Response:
         """Get jobs with filtering and pagination."""
         try:
             # Get all jobs
@@ -258,7 +299,7 @@ def create_admin_routes() -> APIRouter:
     @router.get("/api/jobs/{job_id}")
     async def get_job_details(
         request: Request, job_id: str, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Get detailed job information."""
         try:
             job_data = storage.get_object_by_id("Job", job_id)
@@ -293,7 +334,7 @@ def create_admin_routes() -> APIRouter:
         limit: int = Query(50, le=100),
         skip: int = Query(0, ge=0),
         authorized: bool = Depends(verify_admin_access),
-    ):
+    ) -> Response:
         """Get cases with filtering and pagination."""
         try:
             # Get all cases
@@ -379,7 +420,7 @@ def create_admin_routes() -> APIRouter:
     @router.get("/api/cases/{case_id}")
     async def get_case_details(
         request: Request, case_id: str, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Get detailed case information."""
         try:
             case_data = storage.get_object_by_id("Case", case_id)
@@ -411,7 +452,7 @@ def create_admin_routes() -> APIRouter:
         job_id: str,
         status_data: Dict[str, str],
         authorized: bool = Depends(verify_admin_access),
-    ):
+    ) -> Dict[str, str]:
         """Update job status."""
         try:
             new_status = status_data.get("status")
@@ -442,7 +483,7 @@ def create_admin_routes() -> APIRouter:
         case_id: str,
         status_data: Dict[str, str],
         authorized: bool = Depends(verify_admin_access),
-    ):
+    ) -> Dict[str, str]:
         """Update case status."""
         try:
             new_status = status_data.get("status")
@@ -469,7 +510,9 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.delete("/api/jobs/{job_id}")
-    async def delete_job(job_id: str, authorized: bool = Depends(verify_admin_access)):
+    async def delete_job(
+        job_id: str, authorized: bool = Depends(verify_admin_access)
+    ) -> Dict[str, str]:
         """Delete a job and its related cases."""
         try:
             # Delete related cases first
@@ -493,7 +536,7 @@ def create_admin_routes() -> APIRouter:
     @router.delete("/api/cases/{case_id}")
     async def delete_case(
         case_id: str, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Dict[str, str]:
         """Delete a case."""
         try:
             deleted = storage.delete_object("Case", case_id)
@@ -511,7 +554,7 @@ def create_admin_routes() -> APIRouter:
     @router.get("/api/recent-activity")
     async def get_recent_activity(
         request: Request, authorized: bool = Depends(verify_admin_access)
-    ):
+    ) -> Response:
         """Get recent entity activity."""
         try:
             # Get recent jobs and cases
@@ -541,7 +584,7 @@ def create_admin_routes() -> APIRouter:
                 })
 
             # Sort by created_at descending
-            activities.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            activities.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
             activities = activities[:10]  # Top 10 recent activities
 
             return templates.TemplateResponse(
@@ -557,7 +600,9 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/log-stream")
-    async def log_stream(authorized: bool = Depends(verify_admin_access)):
+    async def log_stream(
+        authorized: bool = Depends(verify_admin_access),
+    ) -> EventSourceResponse:
         """Stream log messages via Server-Sent Events."""
 
         async def generate_log_events() -> AsyncGenerator[str, None]:

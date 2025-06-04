@@ -33,7 +33,7 @@ class StorageManager:
     represented as ID references (Job.case_ids, Case.job_id).
     """
 
-    def __init__(self, db_path: str = "./data/entities.json"):
+    def __init__(self, db_path: str = f"{DATA_STORAGE_PATH}/entities.json"):
         """
         Initialize the storage manager.
 
