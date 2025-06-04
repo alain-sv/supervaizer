@@ -7,7 +7,9 @@
 import os
 import secrets
 import sys
+import time
 import uuid
+from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, TypeVar
 from urllib.parse import urlunparse
 
@@ -19,11 +21,12 @@ from fastapi import FastAPI, HTTPException, Request, Security, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 from rich import inspect
 
 from supervaizer.__version__ import API_VERSION, VERSION
 from supervaizer.account import Account
+from supervaizer.admin.routes import create_admin_routes
 from supervaizer.agent import Agent
 from supervaizer.common import (
     ApiResult,
@@ -36,17 +39,81 @@ from supervaizer.common import (
 from supervaizer.instructions import display_instructions
 from supervaizer.protocol.a2a import create_routes as create_a2a_routes
 from supervaizer.protocol.acp import create_routes as create_acp_routes
-from supervaizer.admin.routes import create_admin_routes
 from supervaizer.routes import (
     create_agents_routes,
     create_default_routes,
     create_utils_routes,
     get_server,
 )
+from supervaizer.storage import StorageManager
 
 insp = inspect
 
 T = TypeVar("T")
+
+# Additional imports for server persistence
+
+
+class ServerInfo(BaseModel):
+    """Complete server information for storage."""
+
+    id: str = "server_instance"  # Fixed ID for singleton
+    host: str
+    port: int
+    api_version: str
+    environment: str
+    agents: List[Dict[str, str]]
+    start_time: float
+    created_at: str
+    updated_at: str
+
+
+def save_server_info_to_storage(server_instance: "Server") -> None:
+    """Save server information to storage."""
+    try:
+        storage = StorageManager()
+
+        # Get agent information
+        agents = []
+        if hasattr(server_instance, "agents") and server_instance.agents:
+            for agent in server_instance.agents:
+                agents.append({
+                    "name": agent.name,
+                    "description": agent.description,
+                    "version": agent.version,
+                })
+
+        # Create server info
+        server_info = ServerInfo(
+            host=getattr(server_instance, "host", "0.0.0.0"),
+            port=getattr(server_instance, "port", 8000),
+            api_version=API_VERSION,
+            environment=os.getenv("SUPERVAIZER_ENVIRONMENT", "development"),
+            agents=agents,
+            start_time=time.time(),
+            created_at=datetime.now().isoformat(),
+            updated_at=datetime.now().isoformat(),
+        )
+
+        # Save to storage
+        storage.save_object("ServerInfo", server_info.model_dump())
+
+        log.info(
+            f"[Server] Server info saved to storage: {server_info.host}:{server_info.port}"
+        )
+
+    except Exception as e:
+        log.error(f"[Server] Failed to save server info to storage: {e}")
+
+
+def get_server_info_from_storage() -> Optional[ServerInfo]:
+    """Get server information from storage."""
+    storage = StorageManager()
+    server_data = storage.get_object_by_id("ServerInfo", "server_instance")
+
+    if server_data:
+        return ServerInfo.model_validate(server_data)
+    return None
 
 
 class AbstractServer(SvBaseModel):
@@ -244,6 +311,9 @@ class Server(AbstractServer):
         if self.api_key:
             log.info("[Server launch] Deploy Admin routes")
             self.app.include_router(create_admin_routes(), prefix="/admin")
+
+            # Save server info to storage for admin interface
+            save_server_info_to_storage(self)
 
         # Override the get_server dependency to return this instance
         async def get_current_server() -> "Server":

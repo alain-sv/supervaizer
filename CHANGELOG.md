@@ -15,4 +15,6 @@ All notable changes to this project will be documented in this file.
 
 - data persistence with tinyDB
 - admin UI with fastAdmin
--
+- Dynamic content on:
+  - Server page
+  -

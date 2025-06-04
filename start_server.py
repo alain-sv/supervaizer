@@ -35,6 +35,18 @@ def main() -> None:
                 custom=None,  # Optional
             ),
         ),
+        Agent(
+            name="Another Agent",
+            description="This is another agent for testing admin interface",
+            version="1.3",
+            methods=AgentMethods(
+                job_start=basic_method,
+                job_stop=basic_method,
+                job_status=basic_method,
+                chat=None,  # Optional
+                custom=None,  # Optional
+            ),
+        ),
         # Add more agents as needed
     ]
 

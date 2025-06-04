@@ -7,8 +7,10 @@
 import os
 import asyncio
 import json
+import time
+import psutil
 from pathlib import Path
-from typing import Dict, Optional, AsyncGenerator
+from typing import Dict, Optional, AsyncGenerator, List
 from datetime import datetime
 
 from fastapi import APIRouter, Request, HTTPException, Depends, Query, Security
@@ -31,6 +33,16 @@ from supervaizer.lifecycle import EntityStatus
 # Global log queue for streaming
 log_queue: asyncio.Queue[Dict[str, str]] = asyncio.Queue()
 
+# Server start time for uptime calculation
+# This will be set when the server actually starts
+SERVER_START_TIME = time.time()
+
+
+def set_server_start_time(start_time: float) -> None:
+    """Set the server start time for uptime calculation."""
+    global SERVER_START_TIME
+    SERVER_START_TIME = start_time
+
 
 def add_log_to_queue(timestamp: str, level: str, message: str) -> None:
     """Add a log message to the streaming queue."""
@@ -45,14 +57,11 @@ def add_log_to_queue(timestamp: str, level: str, message: str) -> None:
         pass  # Silently ignore errors to avoid breaking logging
 
 
-# Template configuration - Use absolute path relative to this file
-_current_dir = Path(__file__).parent
-_template_dir = _current_dir / "templates"
-templates = Jinja2Templates(directory=str(_template_dir))
+# Initialize templates
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
-# API Key Security
-API_KEY_NAME = "X-API-Key"
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+# API key authentication
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 class AdminStats(BaseModel):
@@ -61,6 +70,37 @@ class AdminStats(BaseModel):
     jobs: Dict[str, int]
     cases: Dict[str, int]
     collections: int
+
+
+class ServerStatus(BaseModel):
+    """Server status and metrics."""
+
+    status: str
+    uptime: str
+    uptime_seconds: int
+    memory_usage: str
+    memory_usage_mb: float
+    memory_percent: float
+    cpu_percent: float
+    active_connections: int
+    agents_count: int
+    host: str
+    port: int
+    environment: str
+    database_type: str
+    storage_path: str
+
+
+class ServerConfiguration(BaseModel):
+    """Server configuration details."""
+
+    host: str
+    port: int
+    api_version: str
+    environment: str
+    database_type: str
+    storage_path: str
+    agents: List[Dict[str, str]]
 
 
 class EntityFilter(BaseModel):
@@ -77,18 +117,8 @@ class EntityFilter(BaseModel):
 async def verify_admin_access(
     api_key: Optional[str] = Security(api_key_header),
 ) -> bool:
-    """
-    Verify admin access using API key.
-
-    Args:
-        api_key: API key from request header
-
-    Returns:
-        True if access is granted
-
-    Raises:
-        HTTPException: If access is denied
-    """
+    """Verify admin access via API key."""
+    # Direct environment check
     expected_key = os.getenv("SUPERVAIZER_API_KEY")
 
     if expected_key is None:
@@ -103,6 +133,92 @@ async def verify_admin_access(
         )
 
     return True
+
+
+def format_uptime(seconds: int) -> str:
+    """Format uptime seconds into human readable string."""
+    days = seconds // 86400
+    hours = (seconds % 86400) // 3600
+    minutes = (seconds % 3600) // 60
+
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m"
+    elif hours > 0:
+        return f"{hours}h {minutes}m"
+    else:
+        return f"{minutes}m"
+
+
+def get_server_status() -> ServerStatus:
+    """Get current server status and metrics."""
+    # Get server info from storage - required, no fallback
+    from supervaizer.server import get_server_info_from_storage
+
+    server_info = get_server_info_from_storage()
+    if not server_info:
+        raise HTTPException(
+            status_code=503,
+            detail="Server information not available in storage. Server may not be properly initialized.",
+        )
+
+    # Calculate uptime from stored start time
+    uptime_seconds = int(time.time() - server_info.start_time)
+    uptime_str = format_uptime(uptime_seconds)
+
+    # Get memory usage
+    memory = psutil.virtual_memory()
+    process = psutil.Process()
+    process_memory = process.memory_info().rss / 1024 / 1024  # MB
+
+    # Get CPU usage
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+
+    # Get network connections (approximate active connections)
+    try:
+        connections = len(psutil.net_connections(kind="inet"))
+    except (psutil.AccessDenied, OSError):
+        # This is a system limitation, not a missing data issue
+        connections = 0
+
+    return ServerStatus(
+        status="online",
+        uptime=uptime_str,
+        uptime_seconds=uptime_seconds,
+        memory_usage=f"{process_memory:.1f} MB",
+        memory_usage_mb=process_memory,
+        memory_percent=memory.percent,
+        cpu_percent=cpu_percent,
+        active_connections=connections,
+        agents_count=len(server_info.agents),
+        host=server_info.host,
+        port=server_info.port,
+        environment=server_info.environment,
+        database_type="TinyDB",
+        storage_path=os.getenv("DATA_STORAGE_PATH", "./data"),
+    )
+
+
+def get_server_configuration(storage: StorageManager) -> ServerConfiguration:
+    """Get server configuration details."""
+    # Get server info from storage - required, no fallback
+    from supervaizer.server import get_server_info_from_storage
+
+    server_info = get_server_info_from_storage()
+    if not server_info:
+        raise HTTPException(
+            status_code=503,
+            detail="Server configuration not available in storage. Server may not be properly initialized.",
+        )
+
+    return ServerConfiguration(
+        host=server_info.host,
+        port=server_info.port,
+        api_version=server_info.api_version,
+        environment=server_info.environment,
+        database_type="TinyDB",
+        storage_path=storage.db_path,
+        agents=server_info.agents,
+    )
 
 
 def create_admin_routes() -> APIRouter:
@@ -169,26 +285,51 @@ def create_admin_routes() -> APIRouter:
         request: Request, authorized: bool = Depends(verify_admin_access)
     ) -> Response:
         """Server status and configuration page."""
-        return templates.TemplateResponse(
-            "server.html",
-            {
-                "request": request,
-                "api_version": API_VERSION,
-            },
-        )
+        try:
+            # Get initial server data
+            server_status = get_server_status()
+            server_config = get_server_configuration(storage)
+
+            return templates.TemplateResponse(
+                "server.html",
+                {
+                    "request": request,
+                    "api_version": API_VERSION,
+                    "server_status": server_status,
+                    "server_config": server_config,
+                },
+            )
+        except Exception as e:
+            log.error(f"Admin server page error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/agents", response_class=HTMLResponse)
     async def admin_agents_page(
         request: Request, authorized: bool = Depends(verify_admin_access)
     ) -> Response:
         """Agents management page."""
-        return templates.TemplateResponse(
-            "agents.html",
-            {
-                "request": request,
-                "api_version": API_VERSION,
-            },
-        )
+        try:
+            from supervaizer.server import get_server_info_from_storage
+
+            server_info = get_server_info_from_storage()
+            if not server_info:
+                raise HTTPException(
+                    status_code=503, detail="Server information not available"
+                )
+
+            return templates.TemplateResponse(
+                "agents.html",
+                {
+                    "request": request,
+                    "api_version": API_VERSION,
+                    "agents": server_info.agents,
+                },
+            )
+        except Exception as e:
+            log.error(f"Admin agents page error: {e}")
+            raise HTTPException(
+                status_code=503, detail="Server information unavailable"
+            )
 
     @router.get("/console", response_class=HTMLResponse)
     async def admin_console_page(
@@ -208,6 +349,99 @@ def create_admin_routes() -> APIRouter:
     async def get_stats(authorized: bool = Depends(verify_admin_access)) -> AdminStats:
         """Get system statistics."""
         return get_dashboard_stats(storage)
+
+    @router.get("/api/server/status")
+    async def get_server_status_api(
+        request: Request, authorized: bool = Depends(verify_admin_access)
+    ) -> Response:
+        """Get current server status for HTMX refresh."""
+        try:
+            server_status = get_server_status()
+
+            return templates.TemplateResponse(
+                "server_status_cards.html",
+                {
+                    "request": request,
+                    "server_status": server_status,
+                },
+            )
+        except Exception as e:
+            log.error(f"Get server status API error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/api/agents")
+    async def get_agents_api(
+        request: Request,
+        status: Optional[str] = Query(None),
+        agent_type: Optional[str] = Query(None),
+        search: Optional[str] = Query(None),
+        sort: str = Query("-created_at"),
+        authorized: bool = Depends(verify_admin_access),
+    ) -> Response:
+        """Get agents with filtering for HTMX refresh."""
+        try:
+            from supervaizer.server import get_server_info_from_storage
+
+            server_info = get_server_info_from_storage()
+            if not server_info:
+                raise HTTPException(
+                    status_code=503, detail="Server information not available"
+                )
+
+            agents = server_info.agents
+
+            # Apply filters
+            filtered_agents = []
+            for agent in agents:
+                # Status filter (we'll add this to agent data later)
+                if status and status != "all":
+                    # For now, assume all agents are active since we don't have status
+                    if status != "active":
+                        continue
+
+                # Agent type filter
+                if agent_type and agent_type != "":
+                    # Default to "conversational" if no type specified
+                    agent_agent_type = agent.get("type", "conversational")
+                    if agent_type.lower() != agent_agent_type.lower():
+                        continue
+
+                # Search filter
+                if search:
+                    search_lower = search.lower()
+                    if not (
+                        search_lower in agent.get("name", "").lower()
+                        or search_lower in agent.get("description", "").lower()
+                    ):
+                        continue
+
+                filtered_agents.append(agent)
+
+            # Sort agents
+            if sort.startswith("-"):
+                reverse = True
+                sort_key = sort[1:]
+            else:
+                reverse = False
+                sort_key = sort
+
+            if sort_key == "name":
+                filtered_agents.sort(key=lambda x: x.get("name", ""), reverse=reverse)
+            elif sort_key == "created_at":
+                # For now, maintain original order since we don't have created_at
+                pass
+
+            return templates.TemplateResponse(
+                "agents_grid.html",
+                {
+                    "request": request,
+                    "agents": filtered_agents,
+                },
+            )
+
+        except Exception as e:
+            log.error(f"Get agents API error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/jobs")
     async def get_jobs_api(

@@ -109,140 +109,7 @@
 
     <!-- Agents Grid -->
     <div id="agents-table-container" class="mt-6">
-        <div class="bg-white shadow overflow-hidden rounded-md">
-            <div class="px-4 py-5 sm:p-6">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    <!-- Agent Card 1 -->
-                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-lg font-medium text-gray-900">Customer Support Bot</h3>
-                                        <p class="text-sm text-gray-500">Conversational</p>
-                                    </div>
-                                </div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Active
-                                </span>
-                            </div>
-                            <p class="mt-4 text-sm text-gray-600">
-                                Handles customer inquiries and provides support across multiple channels.
-                            </p>
-                            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="text-gray-500">Jobs Run:</span>
-                                    <span class="font-medium text-gray-900">142</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500">Success Rate:</span>
-                                    <span class="font-medium text-gray-900">97.3%</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex space-x-3">
-                                <button onclick="showAgentDetails('agent_001')" class="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    View
-                                </button>
-                                <button onclick="editAgent('agent_001')" class="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Agent Card 2 -->
-                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-lg font-medium text-gray-900">Data Analyzer</h3>
-                                        <p class="text-sm text-gray-500">Analytical</p>
-                                    </div>
-                                </div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Active
-                                </span>
-                            </div>
-                            <p class="mt-4 text-sm text-gray-600">
-                                Processes and analyzes large datasets to extract actionable insights.
-                            </p>
-                            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="text-gray-500">Jobs Run:</span>
-                                    <span class="font-medium text-gray-900">87</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500">Success Rate:</span>
-                                    <span class="font-medium text-gray-900">94.2%</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex space-x-3">
-                                <button onclick="showAgentDetails('agent_002')" class="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    View
-                                </button>
-                                <button onclick="editAgent('agent_002')" class="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Agent Card 3 -->
-                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-lg font-medium text-gray-900">Workflow Orchestrator</h3>
-                                        <p class="text-sm text-gray-500">Workflow</p>
-                                    </div>
-                                </div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    Training
-                                </span>
-                            </div>
-                            <p class="mt-4 text-sm text-gray-600">
-                                Manages complex workflows and coordinates between different systems.
-                            </p>
-                            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="text-gray-500">Jobs Run:</span>
-                                    <span class="font-medium text-gray-900">23</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500">Success Rate:</span>
-                                    <span class="font-medium text-gray-900">89.1%</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex space-x-3">
-                                <button onclick="showAgentDetails('agent_003')" class="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    View
-                                </button>
-                                <button onclick="editAgent('agent_003')" class="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% include "agents_grid.html" %}
     </div>
 </div>
 
@@ -275,5 +142,16 @@
         console.log('Create new agent');
         // Future: htmx.ajax('GET', '/admin/api/agents/new', {target: '#agent-modal-content'});
     };
+
+    // Auto-refresh agents every 30 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up auto-refresh interval
+        setInterval(function() {
+            const refreshButton = document.querySelector('[hx-get="/admin/api/agents"]');
+            if (refreshButton) {
+                htmx.trigger(refreshButton, 'click');
+            }
+        }, 30000); // Refresh every 30 seconds
+    });
 </script>
 {% endblock %} 
