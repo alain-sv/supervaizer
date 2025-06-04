@@ -225,6 +225,7 @@ class AbstractJob(SvBaseModel):
     finished_at: datetime | None = None
     created_at: datetime | None = None
     agent_parameters: List[dict[str, Any]] | None = None
+    case_ids: List[str] = []  # Foreign key relationship to cases
 
 
 class Job(AbstractJob):
@@ -272,6 +273,26 @@ class Job(AbstractJob):
 
         self.responses.append(response)
 
+    def add_case_id(self, case_id: str) -> None:
+        """Add a case ID to this job's case list.
+
+        Args:
+            case_id: The case ID to add
+        """
+        if case_id not in self.case_ids:
+            self.case_ids.append(case_id)
+            log.debug(f"Added case {case_id} to job {self.id}")
+
+    def remove_case_id(self, case_id: str) -> None:
+        """Remove a case ID from this job's case list.
+
+        Args:
+            case_id: The case ID to remove
+        """
+        if case_id in self.case_ids:
+            self.case_ids.remove(case_id)
+            log.debug(f"Removed case {case_id} from job {self.id}")
+
     @property
     def registration_info(self) -> Dict[str, Any]:
         """Returns registration info for the job"""
@@ -286,6 +307,7 @@ class Job(AbstractJob):
             "responses": [response.registration_info for response in self.responses],
             "finished_at": self.finished_at.isoformat() if self.finished_at else "",
             "created_at": self.created_at.isoformat() if self.created_at else "",
+            "case_ids": self.case_ids,
         }
 
     @classmethod

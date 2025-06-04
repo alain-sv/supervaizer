@@ -279,6 +279,13 @@ class Case(CaseAbstractModel):
         )
         log.info(f"[Case created] {case.id}")
 
+        # Add case to job's case_ids for foreign key relationship
+        from supervaizer.job import Jobs
+
+        job = Jobs().get_job(job_id)
+        if job:
+            job.add_case_id(case.id)
+
         # Transition from STOPPED to IN_PROGRESS
         EntityLifecycle.handle_event(case, EntityEvents.START_WORK)
 
