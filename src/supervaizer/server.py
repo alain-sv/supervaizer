@@ -340,7 +340,7 @@ class Server(AbstractServer):
             # Add log handler for admin streaming if API key is enabled
             if self.api_key:
 
-                def log_queue_handler(message):
+                def log_queue_handler(message: Any) -> None:
                     record = message.record
                     try:
                         from supervaizer.admin.routes import add_log_to_queue
