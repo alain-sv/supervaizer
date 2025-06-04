@@ -13,6 +13,7 @@ dependencies = [
     "deprecated>=1.2.18",
     "fastapi>=0.115.12",
     "httpx>=0.28.1",
+    "jinja2>=3.1.6",
     "loguru>=0.7.3",
     "orjson>=3.10.18",
     "pydantic>=2.11.5",

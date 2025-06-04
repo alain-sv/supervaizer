@@ -36,6 +36,7 @@ from supervaizer.common import (
 from supervaizer.instructions import display_instructions
 from supervaizer.protocol.a2a import create_routes as create_a2a_routes
 from supervaizer.protocol.acp import create_routes as create_acp_routes
+from supervaizer.admin.routes import create_admin_routes
 from supervaizer.routes import (
     create_agents_routes,
     create_default_routes,
@@ -239,6 +240,11 @@ class Server(AbstractServer):
             log.info("[Server launch] Deploy ACP routes")
             self.app.include_router(create_acp_routes(self))
 
+        # Deploy admin routes if API key is available
+        if self.api_key:
+            log.info("[Server launch] Deploy Admin routes")
+            self.app.include_router(create_admin_routes(), prefix="/admin")
+
         # Override the get_server dependency to return this instance
         async def get_current_server() -> "Server":
             return self
@@ -330,6 +336,25 @@ class Server(AbstractServer):
                 format="<green>{time}</green>|<level> {level}</level> | <level>{message}</level>",
                 level=log_level,
             )
+
+            # Add log handler for admin streaming if API key is enabled
+            if self.api_key:
+
+                def log_queue_handler(message):
+                    record = message.record
+                    try:
+                        from supervaizer.admin.routes import add_log_to_queue
+
+                        add_log_to_queue(
+                            timestamp=record["time"].isoformat(),
+                            level=record["level"].name,
+                            message=record["message"],
+                        )
+                    except ImportError:
+                        pass  # Silently ignore if admin routes not available
+
+                log.add(log_queue_handler, level=log_level)
+
             log_level = (
                 log_level.lower()
             )  # needs to be lower case of uvicorn and uppercase of loguru
