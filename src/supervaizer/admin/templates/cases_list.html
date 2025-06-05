@@ -112,7 +112,7 @@
 </div>
 
 <!-- Case Detail Modal -->
-<div id="case-modal" class="fixed inset-0 z-50 hidden" x-data="{ open: false }" x-show="open" x-cloak>
+<div id="case-modal" class="fixed inset-0 z-50" x-data="{ open: false }" x-show="open" x-cloak>
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="open = false"></div>
 
@@ -124,17 +124,28 @@
     </div>
 </div>
 
+<!-- Job Detail Modal -->
+<div id="job-modal" class="fixed inset-0 z-50" x-data="{ open: false }" x-show="open" x-cloak>
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="open = false"></div>
+
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div id="job-modal-content">
+                <!-- Content will be loaded here via HTMX -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Auto-load cases on page load
     document.addEventListener('DOMContentLoaded', function() {
-        htmx.trigger('#cases-table-container', 'refresh');
+        // Load cases immediately
+        htmx.ajax('GET', '/admin/api/cases', {target: '#cases-table-container'});
 
         // Set up auto-refresh interval for cases every 30 seconds
         setInterval(function() {
-            const refreshButton = document.querySelector('[hx-get="/admin/api/cases"]');
-            if (refreshButton) {
-                htmx.trigger(refreshButton, 'click');
-            }
+            htmx.ajax('GET', '/admin/api/cases', {target: '#cases-table-container'});
         }, 30000); // Refresh every 30 seconds
     });
 
@@ -142,13 +153,30 @@
     document.body.addEventListener('htmx:afterRequest', function(e) {
         if (e.detail.target.id === 'case-modal-content') {
             // Show modal after content loads
-            document.getElementById('case-modal').querySelector('[x-data]').__x.$data.open = true;
+            const modal = document.getElementById('case-modal');
+            if (modal && modal._x_dataStack && modal._x_dataStack[0]) {
+                modal._x_dataStack[0].open = true;
+            }
+        }
+        
+        // Handle job modal
+        if (e.detail.target.id === 'job-modal-content') {
+            // Show modal after content loads
+            const modal = document.getElementById('job-modal');
+            if (modal && modal._x_dataStack && modal._x_dataStack[0]) {
+                modal._x_dataStack[0].open = true;
+            }
         }
     });
 
     // Global function to show case details
     window.showCaseDetails = function(caseId) {
         htmx.ajax('GET', `/admin/api/cases/${caseId}`, {target: '#case-modal-content'});
+    };
+
+    // Global function to show job details
+    window.showJobDetails = function(jobId) {
+        htmx.ajax('GET', `/admin/api/jobs/${jobId}`, {target: '#job-modal-content'});
     };
 </script>
 {% endblock %}

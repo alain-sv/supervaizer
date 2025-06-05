@@ -114,7 +114,7 @@
 </div>
 
 <!-- Agent Detail Modal -->
-<div id="agent-modal" class="fixed inset-0 z-50 hidden" x-data="{ open: false }" x-show="open" x-cloak>
+<div id="agent-modal" class="fixed inset-0 z-50" x-data="{ open: false }" x-show="open" x-cloak>
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="open = false"></div>
 
@@ -127,10 +127,28 @@
 </div>
 
 <script>
+    // Handle agent modal
+    document.body.addEventListener('htmx:afterRequest', function(e) {
+        if (e.detail.target.id === 'agent-modal-content') {
+            console.log('Agent modal content loaded, showing modal');
+            // Show modal after content loads
+            const modal = document.getElementById('agent-modal');
+            if (modal && modal._x_dataStack && modal._x_dataStack[0]) {
+                modal._x_dataStack[0].open = true;
+                console.log('Modal opened via Alpine.js');
+            } else {
+                console.log('Alpine.js not available, using fallback');
+                // Fallback: remove x-cloak and set open state manually
+                modal.classList.remove('x-cloak');
+                modal.style.display = 'block';
+            }
+        }
+    });
+
     // Global functions for agent actions
-    window.showAgentDetails = function(agentId) {
-        console.log('Show agent details for:', agentId);
-        // Future: htmx.ajax('GET', `/admin/api/agents/${agentId}`, {target: '#agent-modal-content'});
+    window.showAgentDetails = function(agentSlug) {
+        console.log('Showing agent details for slug:', agentSlug);
+        htmx.ajax('GET', `/admin/api/agents/${encodeURIComponent(agentSlug)}`, {target: '#agent-modal-content'});
     };
 
     window.editAgent = function(agentId) {
@@ -143,14 +161,14 @@
         // Future: htmx.ajax('GET', '/admin/api/agents/new', {target: '#agent-modal-content'});
     };
 
-    // Auto-refresh agents every 30 seconds
+    // Auto-load and refresh agents
     document.addEventListener('DOMContentLoaded', function() {
+        // Load agents immediately
+        htmx.ajax('GET', '/admin/api/agents', {target: '#agents-table-container'});
+
         // Set up auto-refresh interval
         setInterval(function() {
-            const refreshButton = document.querySelector('[hx-get="/admin/api/agents"]');
-            if (refreshButton) {
-                htmx.trigger(refreshButton, 'click');
-            }
+            htmx.ajax('GET', '/admin/api/agents', {target: '#agents-table-container'});
         }, 30000); // Refresh every 30 seconds
     });
 </script>

@@ -1,0 +1,572 @@
+{
+  "Case": {
+    "1": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "78250aaf-894a-42c8-a063-8be2d3a7bfda",
+      "job_id": "job123",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": []
+    },
+    "2": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "V3tcwTMnHgyrvAzeUu4m53",
+      "job_id": "job123",
+      "name": "New Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": []
+    },
+    "3": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": {
+        "status": "success"
+      },
+      "finished_at": "2025-06-05T16:56:32.792964",
+      "id": "0443328d-a5b2-436b-bfc8-d8075ee2fc4a",
+      "job_id": "job123",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "completed",
+      "total_cost": 10.0,
+      "updates": []
+    },
+    "4": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": {
+        "status": "success"
+      },
+      "finished_at": "2025-06-05T16:56:32.796445",
+      "id": "783ec68e-b4f4-4a19-b751-8b0f4c54a87a",
+      "job_id": "job123",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "completed",
+      "total_cost": 8.0,
+      "updates": [
+        {
+          "cost": 5.0,
+          "error": null,
+          "index": null,
+          "is_final": false,
+          "name": null,
+          "payload": {}
+        },
+        {
+          "cost": 3.0,
+          "error": null,
+          "index": null,
+          "is_final": false,
+          "name": null,
+          "payload": {}
+        }
+      ]
+    },
+    "5": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "085ad3b1-76f2-4049-aa09-25d889beea0c",
+      "job_id": "job123",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": []
+    },
+    "6": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "1ce057b6-0c42-4041-82b1-33f6b499bf34",
+      "job_id": "job123",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "trigger"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": []
+    },
+    "7": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "test-case-f5b4b152-ca09-4b81-8ef7-368bfed4abfc",
+      "job_id": "test-job-id",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "chat"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": [
+        {
+          "cost": null,
+          "error": null,
+          "index": 1,
+          "is_final": false,
+          "name": "Human Input Response",
+          "payload": {
+            "answer": {
+              "field1": "value1",
+              "field2": "value2"
+            },
+            "message": "This is my answer",
+            "response_type": "human_input"
+          }
+        }
+      ]
+    },
+    "8": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "test-case-not-awaiting-b2c414f0-0b5d-4efd-96b3-1725c8cdd81d",
+      "job_id": "test-job-id",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "chat"
+        }
+      ],
+      "status": "in_progress",
+      "total_cost": 0.0,
+      "updates": []
+    },
+    "9": {
+      "account": {
+        "api_key": "zYx680h5.73IZfE7c1tPNr6rvdeNwV3IahI6VzHYj",
+        "api_url": "https://ample-strong-coyote.ngrok-free.app",
+        "workspace_id": "o34Z484gY9Nxz8axgTAdiH"
+      },
+      "description": "Test Case Description",
+      "final_delivery": null,
+      "finished_at": null,
+      "id": "test-case-unauth-d6cd420b-2c36-43b0-a18a-ea189617b429",
+      "job_id": "test-job-id",
+      "name": "Test Case",
+      "nodes": [
+        {
+          "description": "Test Node Description",
+          "name": "Test Node",
+          "type": "chat"
+        }
+      ],
+      "status": "awaiting",
+      "total_cost": 0.0,
+      "updates": []
+    }
+  },
+  "Job": {
+    "1": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:54:48.020937",
+      "error": null,
+      "finished_at": null,
+      "id": "test-job-456",
+      "job_context": {
+        "job_id": "test-job-456",
+        "job_instructions": null,
+        "mission_context": null,
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:54:48.020894",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "Test Job for Persistence",
+      "payload": null,
+      "responses": [],
+      "result": null,
+      "status": "stopped"
+    },
+    "2": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.928833",
+      "error": null,
+      "finished_at": null,
+      "id": "test-job-id",
+      "job_context": {
+        "job_id": "test-job-id",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.928793",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job-id",
+      "payload": null,
+      "responses": [],
+      "result": null,
+      "status": "in_progress"
+    },
+    "3": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.961465",
+      "error": null,
+      "finished_at": null,
+      "id": "fba743d7-8c8f-4353-9b2e-73abe941dcba",
+      "job_context": {
+        "job_id": "fba743d7-8c8f-4353-9b2e-73abe941dcba",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.961413",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job",
+      "payload": {
+        "test": "data"
+      },
+      "responses": [
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "fba743d7-8c8f-4353-9b2e-73abe941dcba",
+          "message": "Starting job",
+          "payload": {
+            "test": "data"
+          },
+          "status": "in_progress"
+        }
+      ],
+      "result": null,
+      "status": "in_progress"
+    },
+    "4": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.964442",
+      "error": null,
+      "finished_at": "2025-06-05T16:56:32.966844",
+      "id": "bc868884-fd17-41bb-9413-f386ffedd2f6",
+      "job_context": {
+        "job_id": "bc868884-fd17-41bb-9413-f386ffedd2f6",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.964407",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job",
+      "payload": {
+        "result": "success"
+      },
+      "responses": [
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "bc868884-fd17-41bb-9413-f386ffedd2f6",
+          "message": "Waiting for input",
+          "payload": {
+            "progress": "50%"
+          },
+          "status": "awaiting"
+        },
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "bc868884-fd17-41bb-9413-f386ffedd2f6",
+          "message": "Complete",
+          "payload": {
+            "result": "success"
+          },
+          "status": "completed"
+        }
+      ],
+      "result": {
+        "result": "success"
+      },
+      "status": "completed"
+    },
+    "5": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.967777",
+      "error": "Something went wrong",
+      "finished_at": "2025-06-05T16:56:32.969400",
+      "id": "b4496937-ba7e-415e-b8ad-0839882a8368",
+      "job_context": {
+        "job_id": "b4496937-ba7e-415e-b8ad-0839882a8368",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.967746",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job",
+      "payload": null,
+      "responses": [
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "b4496937-ba7e-415e-b8ad-0839882a8368",
+          "message": "Something went wrong",
+          "payload": null,
+          "status": "failed"
+        }
+      ],
+      "result": null,
+      "status": "failed"
+    },
+    "6": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.970292",
+      "error": null,
+      "finished_at": null,
+      "id": "71c0afd6-c332-4879-8bbd-c2b8f9eba072",
+      "job_context": {
+        "job_id": "71c0afd6-c332-4879-8bbd-c2b8f9eba072",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.970261",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job",
+      "payload": {
+        "question": "What next?"
+      },
+      "responses": [
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "71c0afd6-c332-4879-8bbd-c2b8f9eba072",
+          "message": "Need human input",
+          "payload": {
+            "question": "What next?"
+          },
+          "status": "awaiting"
+        }
+      ],
+      "result": null,
+      "status": "awaiting"
+    },
+    "7": {
+      "agent_name": "test-agent",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:32.972992",
+      "error": "Job failed",
+      "finished_at": "2025-06-05T16:56:32.977019",
+      "id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+      "job_context": {
+        "job_id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.972891",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "test-job",
+      "payload": null,
+      "responses": [
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+          "message": "Job awaiting input",
+          "payload": null,
+          "status": "awaiting"
+        },
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+          "message": "Job resumed",
+          "payload": null,
+          "status": "in_progress"
+        },
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+          "message": "Job completed",
+          "payload": {
+            "result": "success"
+          },
+          "status": "completed"
+        },
+        {
+          "error_message": "",
+          "error_traceback": "",
+          "job_id": "f8fd45e8-fca2-4e39-809a-0afcfa1a0017",
+          "message": "Job failed",
+          "payload": null,
+          "status": "failed"
+        }
+      ],
+      "result": {
+        "result": "success"
+      },
+      "status": "failed"
+    },
+    "8": {
+      "agent_name": "agentName",
+      "agent_parameters": null,
+      "case_ids": [],
+      "created_at": "2025-06-05T16:56:33.186386",
+      "error": null,
+      "finished_at": null,
+      "id": "0f7b8e2a-230d-4157-a77e-3c4bd27ae48e",
+      "job_context": {
+        "job_id": "0f7b8e2a-230d-4157-a77e-3c4bd27ae48e",
+        "job_instructions": null,
+        "mission_context": {
+          "test": "context"
+        },
+        "mission_id": "test-mission",
+        "mission_name": "Test Mission",
+        "started_at": "2025-06-05T16:56:32.928793",
+        "started_by": "test-user",
+        "workspace_id": "test-workspace"
+      },
+      "name": "0f7b8e2a-230d-4157-a77e-3c4bd27ae48e",
+      "payload": null,
+      "responses": [],
+      "result": null,
+      "status": "in_progress"
+    }
+  },
+  "ServerInfo": {
+    "1": {
+      "agents": [
+        {
+          "description": "description",
+          "name": "agentName",
+          "version": "1.0.0"
+        }
+      ],
+      "api_version": "v1",
+      "created_at": "2025-06-05T16:56:37.553857",
+      "environment": "dev",
+      "host": "localhost",
+      "id": "server_instance",
+      "port": 8001,
+      "start_time": 1749131797.553857,
+      "updated_at": "2025-06-05T16:56:37.553865"
+    }
+  }
+}

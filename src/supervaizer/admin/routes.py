@@ -221,7 +221,7 @@ def get_server_configuration(storage: StorageManager) -> ServerConfiguration:
         api_version=server_info.api_version,
         environment=server_info.environment,
         database_type="TinyDB",
-        storage_path=storage.db_path,
+        storage_path=str(storage.db_path.absolute()),
         agents=server_info.agents,
     )
 
@@ -252,7 +252,7 @@ def create_admin_routes() -> APIRouter:
                     "stats": stats,
                     "system_status": "Online",
                     "db_name": "TinyDB",
-                    "data_storage_path": storage.db_path,
+                    "data_storage_path": str(storage.db_path.absolute()),
                     "api_key": os.getenv("SUPERVAIZER_API_KEY"),
                 },
             )
@@ -310,7 +310,7 @@ def create_admin_routes() -> APIRouter:
             )
         except Exception as e:
             log.error(f"Admin server page error: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/agents", response_class=HTMLResponse)
     async def admin_agents_page(
@@ -339,7 +339,7 @@ def create_admin_routes() -> APIRouter:
             log.error(f"Admin agents page error: {e}")
             raise HTTPException(
                 status_code=503, detail="Server information unavailable"
-            )
+            ) from e
 
     @router.get("/console", response_class=HTMLResponse)
     async def admin_console_page(
@@ -452,6 +452,46 @@ def create_admin_routes() -> APIRouter:
 
         except Exception as e:
             log.error(f"Get agents API error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/api/agents/{agent_slug}")
+    async def get_agent_details(
+        request: Request,
+        agent_slug: str,
+        authorized: bool = Depends(verify_admin_access),
+    ) -> Response:
+        """Get detailed agent information."""
+        try:
+            from supervaizer.server import get_server_info_from_storage
+
+            server_info = get_server_info_from_storage()
+            if not server_info:
+                raise HTTPException(
+                    status_code=503, detail="Server information not available"
+                )
+
+            # Find the agent by slug
+            agent = None
+            for a in server_info.agents:
+                if a.get("slug") == agent_slug:
+                    agent = a
+                    break
+
+            if not agent:
+                raise HTTPException(status_code=404, detail="Agent not found")
+
+            return templates.TemplateResponse(
+                "agent_detail.html",
+                {
+                    "request": request,
+                    "agent": agent,
+                },
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.error(f"Get agent details error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/jobs")
@@ -809,28 +849,24 @@ def create_admin_routes() -> APIRouter:
             # Combine and sort by created_at
             activities = []
             for job in recent_jobs:
-                activities.append(
-                    {
-                        "type": "job",
-                        "id": job.get("id"),
-                        "name": job.get("name"),
-                        "status": job.get("status"),
-                        "created_at": job.get("created_at"),
-                        "agent_name": job.get("agent_name"),
-                    }
-                )
+                activities.append({
+                    "type": "job",
+                    "id": job.get("id"),
+                    "name": job.get("name"),
+                    "status": job.get("status"),
+                    "created_at": job.get("created_at"),
+                    "agent_name": job.get("agent_name"),
+                })
 
             for case in recent_cases:
-                activities.append(
-                    {
-                        "type": "case",
-                        "id": case.get("id"),
-                        "name": case.get("name"),
-                        "status": case.get("status"),
-                        "created_at": case.get("created_at"),
-                        "job_id": case.get("job_id"),
-                    }
-                )
+                activities.append({
+                    "type": "case",
+                    "id": case.get("id"),
+                    "name": case.get("name"),
+                    "status": case.get("status"),
+                    "created_at": case.get("created_at"),
+                    "job_id": case.get("job_id"),
+                })
 
             # Sort by created_at descending
             activities.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
@@ -875,13 +911,11 @@ def create_admin_routes() -> APIRouter:
                 pass
             except Exception as e:
                 # Send error and close
-                error_data = json.dumps(
-                    {
-                        "timestamp": datetime.now().isoformat(),
-                        "level": "ERROR",
-                        "message": f"Log stream error: {str(e)}",
-                    }
-                )
+                error_data = json.dumps({
+                    "timestamp": datetime.now().isoformat(),
+                    "level": "ERROR",
+                    "message": f"Log stream error: {str(e)}",
+                })
                 yield f"data: {error_data}\n\n"
 
         return EventSourceResponse(generate_log_events())
@@ -898,23 +932,23 @@ def get_dashboard_stats(storage: StorageManager) -> AdminStats:
 
         # Calculate job stats
         job_total = len(all_jobs)
-        job_running = len(
-            [j for j in all_jobs if j.get("status") in ["in_progress", "awaiting"]]
-        )
+        job_running = len([
+            j for j in all_jobs if j.get("status") in ["in_progress", "awaiting"]
+        ])
         job_completed = len([j for j in all_jobs if j.get("status") == "completed"])
-        job_failed = len(
-            [j for j in all_jobs if j.get("status") in ["failed", "cancelled"]]
-        )
+        job_failed = len([
+            j for j in all_jobs if j.get("status") in ["failed", "cancelled"]
+        ])
 
         # Calculate case stats
         case_total = len(all_cases)
-        case_running = len(
-            [c for c in all_cases if c.get("status") in ["in_progress", "awaiting"]]
-        )
+        case_running = len([
+            c for c in all_cases if c.get("status") in ["in_progress", "awaiting"]
+        ])
         case_completed = len([c for c in all_cases if c.get("status") == "completed"])
-        case_failed = len(
-            [c for c in all_cases if c.get("status") in ["failed", "cancelled"]]
-        )
+        case_failed = len([
+            c for c in all_cases if c.get("status") in ["failed", "cancelled"]
+        ])
 
         # TinyDB collections count (tables)
         collections_count = len(storage._db.tables())

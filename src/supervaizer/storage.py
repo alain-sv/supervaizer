@@ -16,8 +16,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
 
 from tinydb import Query, TinyDB
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
 
 from supervaizer.common import log, singleton
 from supervaizer.lifecycle import WorkflowEntity
@@ -48,15 +46,18 @@ class StorageManager:
         Args:
             db_path: Path to the TinyDB JSON file
         """
-        self.db_path = db_path
+        self.db_path = Path(db_path)
         self._lock = threading.Lock()
 
         # Ensure data directory exists
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
-        # Initialize TinyDB with caching middleware for thread safety
+        # Initialize TinyDB without caching middleware for immediate persistence
+        # Note: Thread safety is handled by our own threading lock
         self._db = TinyDB(
-            db_path, storage=CachingMiddleware(JSONStorage), sort_keys=True, indent=2
+            db_path,
+            sort_keys=True,
+            indent=2,
         )
 
         log.info(f"[StorageManager] DB initialized at {db_path}")
