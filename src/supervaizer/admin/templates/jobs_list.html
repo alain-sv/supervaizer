@@ -126,6 +126,14 @@
     // Auto-load jobs on page load
     document.addEventListener('DOMContentLoaded', function() {
         htmx.trigger('#jobs-table-container', 'refresh');
+        
+        // Set up auto-refresh interval for jobs every 30 seconds
+        setInterval(function() {
+            const refreshButton = document.querySelector('[hx-get="/admin/api/jobs"]');
+            if (refreshButton) {
+                htmx.trigger(refreshButton, 'click');
+            }
+        }, 30000); // Refresh every 30 seconds
     });
 
     // Handle job modal

@@ -14,7 +14,6 @@ from supervaizer.__version__ import VERSION
 from supervaizer.common import SvBaseModel, log, singleton
 from supervaizer.lifecycle import (
     EntityEvents,
-    EntityLifecycle,
     EntityStatus,
     Lifecycle,
 )
@@ -251,6 +250,11 @@ class Job(AbstractJob):
         Jobs().add_job(
             job=self,
         )
+        # Persist job to storage
+        from supervaizer.storage import StorageManager
+
+        storage = StorageManager()
+        storage.save_object("Job", self.to_dict)
 
     def add_response(self, response: JobResponse) -> None:
         """Add a response to the job and update status based on the event lifecycle.
@@ -273,6 +277,12 @@ class Job(AbstractJob):
 
         self.responses.append(response)
 
+        # Persist updated job to storage
+        from supervaizer.storage import StorageManager
+
+        storage = StorageManager()
+        storage.save_object("Job", self.to_dict)
+
     def add_case_id(self, case_id: str) -> None:
         """Add a case ID to this job's case list.
 
@@ -282,6 +292,11 @@ class Job(AbstractJob):
         if case_id not in self.case_ids:
             self.case_ids.append(case_id)
             log.debug(f"Added case {case_id} to job {self.id}")
+            # Persist updated job to storage
+            from supervaizer.storage import StorageManager
+
+            storage = StorageManager()
+            storage.save_object("Job", self.to_dict)
 
     def remove_case_id(self, case_id: str) -> None:
         """Remove a case ID from this job's case list.
@@ -292,6 +307,11 @@ class Job(AbstractJob):
         if case_id in self.case_ids:
             self.case_ids.remove(case_id)
             log.debug(f"Removed case {case_id} from job {self.id}")
+            # Persist updated job to storage
+            from supervaizer.storage import StorageManager
+
+            storage = StorageManager()
+            storage.save_object("Job", self.to_dict)
 
     @property
     def registration_info(self) -> Dict[str, Any]:
@@ -343,6 +363,8 @@ class Job(AbstractJob):
         )
 
         # Transition from STOPPED to IN_PROGRESS
-        EntityLifecycle.handle_event(job, EntityEvents.START_WORK)
+        from supervaizer.storage import PersistentEntityLifecycle
+
+        PersistentEntityLifecycle.handle_event(job, EntityEvents.START_WORK)
 
         return job

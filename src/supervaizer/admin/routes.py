@@ -248,6 +248,7 @@ def create_admin_routes() -> APIRouter:
                     "system_status": "Online",
                     "db_name": "TinyDB",
                     "data_storage_path": storage.db_path,
+                    "api_key": os.getenv("SUPERVAIZER_API_KEY"),
                 },
             )
         except Exception as e:
@@ -264,6 +265,7 @@ def create_admin_routes() -> APIRouter:
             {
                 "request": request,
                 "api_version": API_VERSION,
+                "api_key": os.getenv("SUPERVAIZER_API_KEY"),
             },
         )
 
@@ -277,6 +279,7 @@ def create_admin_routes() -> APIRouter:
             {
                 "request": request,
                 "api_version": API_VERSION,
+                "api_key": os.getenv("SUPERVAIZER_API_KEY"),
             },
         )
 
@@ -297,6 +300,7 @@ def create_admin_routes() -> APIRouter:
                     "api_version": API_VERSION,
                     "server_status": server_status,
                     "server_config": server_config,
+                    "api_key": os.getenv("SUPERVAIZER_API_KEY"),
                 },
             )
         except Exception as e:
@@ -323,6 +327,7 @@ def create_admin_routes() -> APIRouter:
                     "request": request,
                     "api_version": API_VERSION,
                     "agents": server_info.agents,
+                    "api_key": os.getenv("SUPERVAIZER_API_KEY"),
                 },
             )
         except Exception as e:
@@ -341,6 +346,7 @@ def create_admin_routes() -> APIRouter:
             {
                 "request": request,
                 "api_version": API_VERSION,
+                "api_key": os.getenv("SUPERVAIZER_API_KEY"),
             },
         )
 
@@ -835,9 +841,17 @@ def create_admin_routes() -> APIRouter:
 
     @router.get("/log-stream")
     async def log_stream(
-        authorized: bool = Depends(verify_admin_access),
+        api_key: Optional[str] = Query(None, alias="key"),
     ) -> EventSourceResponse:
         """Stream log messages via Server-Sent Events."""
+
+        # Manual API key verification for EventSource (doesn't support custom headers)
+        expected_key = os.getenv("SUPERVAIZER_API_KEY")
+        if expected_key is not None and api_key != expected_key:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid or missing API key. Pass it as ?key=<api_key>",
+            )
 
         async def generate_log_events() -> AsyncGenerator[str, None]:
             try:

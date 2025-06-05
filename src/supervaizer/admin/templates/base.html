@@ -125,7 +125,9 @@
                     eventSource.close();
                 }
                 
-                eventSource = new EventSource('/admin/log-stream');
+                const apiKey = '{{ api_key }}';
+                const streamUrl = apiKey ? `/admin/log-stream?key=${encodeURIComponent(apiKey)}` : '/admin/log-stream';
+                eventSource = new EventSource(streamUrl);
                 
                 eventSource.onmessage = function(event) {
                     try {

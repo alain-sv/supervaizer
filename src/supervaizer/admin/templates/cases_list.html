@@ -128,6 +128,14 @@
     // Auto-load cases on page load
     document.addEventListener('DOMContentLoaded', function() {
         htmx.trigger('#cases-table-container', 'refresh');
+        
+        // Set up auto-refresh interval for cases every 30 seconds
+        setInterval(function() {
+            const refreshButton = document.querySelector('[hx-get="/admin/api/cases"]');
+            if (refreshButton) {
+                htmx.trigger(refreshButton, 'click');
+            }
+        }, 30000); // Refresh every 30 seconds
     });
 
     // Handle case modal

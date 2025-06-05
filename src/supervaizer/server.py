@@ -165,6 +165,7 @@ class Server(AbstractServer):
         supervisor_account: Optional[Account] = None,
         a2a_endpoints: bool = True,
         acp_endpoints: bool = True,
+        admin_interface: bool = True,
         scheme: str = "http",
         environment: str = os.getenv("SUPERVAIZER_ENVIRONMENT", "dev"),
         host: str = os.getenv("SUPERVAIZER_HOST", "0.0.0.0"),
@@ -188,6 +189,7 @@ class Server(AbstractServer):
             supervisor_account: Account of the supervisor
             a2a_endpoints: Whether to enable A2A endpoints
             acp_endpoints: Whether to enable ACP endpoints
+            admin_interface: Whether to enable admin interface
             scheme: URL scheme (http or https)
             environment: Environment name (e.g., dev, staging, prod)
             host: Host to bind the server to (e.g., 0.0.0.0 for all interfaces)
@@ -308,8 +310,8 @@ class Server(AbstractServer):
             self.app.include_router(create_acp_routes(self))
 
         # Deploy admin routes if API key is available
-        if self.api_key:
-            log.info("[Server launch] Deploy Admin routes")
+        if self.api_key and admin_interface:
+            log.info("[Server launch] Deploy Admin interface")
             self.app.include_router(create_admin_routes(), prefix="/admin")
 
             # Save server info to storage for admin interface

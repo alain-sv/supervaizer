@@ -13,7 +13,7 @@ import shortuuid
 from pydantic import ConfigDict
 
 from supervaizer.common import SvBaseModel, log, singleton
-from supervaizer.lifecycle import EntityEvents, EntityLifecycle, EntityStatus
+from supervaizer.lifecycle import EntityEvents, EntityStatus
 
 if TYPE_CHECKING:
     from supervaizer.account import Account
@@ -162,6 +162,11 @@ class Case(CaseAbstractModel):
         super().__init__(**kwargs)
         # Register the case in the global registry
         Cases().add_case(self)
+        # Persist case to storage
+        from supervaizer.storage import StorageManager
+
+        storage = StorageManager()
+        storage.save_object("Case", self.to_dict)
 
     @property
     def uri(self) -> str:
@@ -178,7 +183,9 @@ class Case(CaseAbstractModel):
     def update(self, updateCaseNode: CaseNodeUpdate, **kwargs: Any) -> None:
         updateCaseNode.index = len(self.updates) + 1
         if updateCaseNode.error:
-            EntityLifecycle.handle_event(self, EntityEvents.ERROR_ENCOUNTERED)
+            from supervaizer.storage import PersistentEntityLifecycle
+
+            PersistentEntityLifecycle.handle_event(self, EntityEvents.ERROR_ENCOUNTERED)
             assert self.status == EntityStatus.FAILED  # Just to be sure
         self.account.send_update_case(self, updateCaseNode)
         self.updates.append(updateCaseNode)
@@ -191,12 +198,22 @@ class Case(CaseAbstractModel):
             f"[Update case human_input] CaseRef {self.case_ref} with update {updateCaseNode}"
         )
         self.account.send_update_case(self, updateCaseNode)
-        EntityLifecycle.handle_event(self, EntityEvents.AWAITING_ON_INPUT)
+        from supervaizer.storage import PersistentEntityLifecycle
+
+        PersistentEntityLifecycle.handle_event(self, EntityEvents.AWAITING_ON_INPUT)
         self.updates.append(updateCaseNode)
 
     def receive_human_input(self, **kwargs: Any) -> None:
         # Transition from AWAITING to IN_PROGRESS
-        EntityLifecycle.handle_event(self, EntityEvents.INPUT_RECEIVED)
+        from supervaizer.storage import PersistentEntityLifecycle
+
+        PersistentEntityLifecycle.handle_event(self, EntityEvents.INPUT_RECEIVED)
+
+        # Persist updated case to storage
+        from supervaizer.storage import StorageManager
+
+        storage = StorageManager()
+        storage.save_object("Case", self.to_dict)
 
     def close(
         self,
@@ -215,7 +232,9 @@ class Case(CaseAbstractModel):
             f"[Close case] CaseRef {self.case_ref} with result {case_result} - Case cost is {self.total_cost}"
         )
         # Transition from IN_PROGRESS to COMPLETED
-        EntityLifecycle.handle_event(self, EntityEvents.SUCCESSFULLY_DONE)
+        from supervaizer.storage import PersistentEntityLifecycle
+
+        PersistentEntityLifecycle.handle_event(self, EntityEvents.SUCCESSFULLY_DONE)
 
         update = CaseNodeUpdate(
             payload=case_result,
@@ -226,6 +245,12 @@ class Case(CaseAbstractModel):
         self.final_delivery = case_result
         self.finished_at = datetime.now()
         self.account.send_update_case(self, update)
+
+        # Persist updated case to storage
+        from supervaizer.storage import StorageManager
+
+        storage = StorageManager()
+        storage.save_object("Case", self.to_dict)
 
     @property
     def registration_info(self) -> Dict[str, Any]:
@@ -287,7 +312,9 @@ class Case(CaseAbstractModel):
             job.add_case_id(case.id)
 
         # Transition from STOPPED to IN_PROGRESS
-        EntityLifecycle.handle_event(case, EntityEvents.START_WORK)
+        from supervaizer.storage import PersistentEntityLifecycle
+
+        PersistentEntityLifecycle.handle_event(case, EntityEvents.START_WORK)
 
         # Send case startvent to Supervaize SaaS.
         account.send_start_case(case=case)
