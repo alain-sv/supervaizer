@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, you can obtain one at
+# https://mozilla.org/MPL/2.0/.
+
 """
 Example usage of the TinyDB-based persistence layer for Supervaizer entities.
 
@@ -13,17 +19,17 @@ This example demonstrates:
 import os
 import tempfile
 from datetime import datetime
-
-from supervaizer.storage import (
-    StorageManager,
-    PersistentEntityLifecycle,
-    create_job_repository,
-    create_case_repository,
-)
-from supervaizer.job import Job, JobContext, Jobs
-from supervaizer.case import Case, CaseNode, CaseNoteType, Cases
-from supervaizer.lifecycle import EntityStatus, EntityEvents
 from unittest.mock import MagicMock, patch
+
+from supervaizer.case import Case, CaseNode, CaseNoteType, Cases
+from supervaizer.job import Job, JobContext, Jobs
+from supervaizer.lifecycle import EntityEvents, EntityStatus
+from supervaizer.storage import (
+    PersistentEntityLifecycle,
+    StorageManager,
+    create_case_repository,
+    create_job_repository,
+)
 
 
 def demo_storage_manager():

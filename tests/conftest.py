@@ -4,14 +4,17 @@
 # If a copy of the MPL was not distributed with this file, you can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
-
+import os
+import tempfile
 from datetime import datetime
+from typing import Any, Dict, Generator
 from uuid import uuid4
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing_extensions import Annotated
 
+import supervaizer.storage
 from supervaizer import (
     Account,
     Agent,
@@ -35,6 +38,63 @@ from supervaizer import (
     TelemetrySeverity,
     TelemetryType,
 )
+from supervaizer.storage import EntityRepository, StorageManager
+
+
+@pytest.fixture(scope="session")
+def temp_db_path() -> Generator[str, None, None]:
+    """Create a temporary database path for testing."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield os.path.join(temp_dir, "test_entities.json")
+
+
+@pytest.fixture
+def storage_manager(temp_db_path: str) -> StorageManager:
+    """Create a clean StorageManager instance for testing."""
+    # Clear the singleton instance to ensure fresh instance
+    # The singleton decorator creates a closure with instances dict
+    storage_get_instance = supervaizer.storage.StorageManager
+    if (
+        hasattr(storage_get_instance, "__closure__")
+        and storage_get_instance.__closure__
+    ):
+        # Clear the instances dict in the closure
+        for cell in storage_get_instance.__closure__:
+            if hasattr(cell.cell_contents, "clear"):
+                cell.cell_contents.clear()
+
+    storage = StorageManager(db_path=temp_db_path)
+    storage.reset_storage()  # Ensure clean state
+    return storage
+
+
+@pytest.fixture
+def mock_entity_class() -> Any:
+    """Create a mock entity class for testing repositories."""
+
+    class MockEntity:
+        def __init__(self, id: str, name: str, status: str = "active"):
+            self.id = id
+            self.name = name
+            self.status = status
+
+        @property
+        def to_dict(self) -> Dict[str, Any]:
+            return {"id": self.id, "name": self.name, "status": self.status}
+
+        @classmethod
+        def model_validate(cls, data: Dict[str, Any]) -> "MockEntity":
+            return cls(**data)
+
+    return MockEntity
+
+
+@pytest.fixture
+def mock_entity_repository(
+    storage_manager: "StorageManager", mock_entity_class: Any
+) -> "EntityRepository[MockEntity]":  # type: ignore
+    """Create a repository with mock entity class for testing."""
+    return EntityRepository(mock_entity_class, storage_manager)
 
 
 @pytest.fixture
@@ -75,6 +135,19 @@ def job_fixture(context_fixture: JobContext) -> Annotated[Job, "fixture"]:
         job_context=context_fixture,
         agent_name="test-agent",
         name="test-job-id",
+    )
+
+
+@pytest.fixture
+def test_job_context() -> JobContext:
+    """Create a test job context for storage tests."""
+    return JobContext(
+        workspace_id="test-workspace",
+        job_id="test-job-123",
+        started_by="test-user",
+        started_at=datetime.now(),
+        mission_id="test-mission",
+        mission_name="Test Mission",
     )
 
 

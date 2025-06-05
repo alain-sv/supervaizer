@@ -25,7 +25,7 @@
                             <p class="text-sm font-medium text-gray-900">
                                 {{ activity.name or activity.id[:8] + "..." }}
                             </p>
-                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                 {% if activity.status == 'completed' %}bg-green-100 text-green-800
                                 {% elif activity.status == 'in_progress' %}bg-blue-100 text-blue-800
                                 {% elif activity.status == 'failed' %}bg-red-100 text-red-800
@@ -54,7 +54,7 @@
                             -
                         {% endif %}
                     </div>
-                    <button 
+                    <button
                         {% if activity.type == 'job' %}
                             onclick="showJobDetails('{{ activity.id }}')"
                         {% else %}
@@ -78,4 +78,4 @@
         <p class="mt-1 text-sm text-gray-500">Activity will appear here as jobs and cases are created and updated.</p>
     </div>
     {% endif %}
-</div> 
+</div>

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
+# Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, you can obtain one at
+# https://mozilla.org/MPL/2.0/.
+
 """
 Test script to demonstrate the admin interface integration.
 """
 
+from supervaizer.agent import Agent, AgentMethod, AgentMethods
 from supervaizer.server import Server
-from supervaizer.agent import Agent, AgentMethods, AgentMethod
 
 
 def main():

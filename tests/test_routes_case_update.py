@@ -4,8 +4,9 @@
 # If a copy of the MPL was not distributed with this file, you can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
-from fastapi.testclient import TestClient
 from uuid import uuid4
+
+from fastapi.testclient import TestClient
 
 from supervaizer import Account, Case, CaseNode, CaseNoteType, Job, Server
 from supervaizer.lifecycle import EntityStatus

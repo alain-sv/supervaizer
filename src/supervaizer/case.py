@@ -14,6 +14,7 @@ from pydantic import ConfigDict
 
 from supervaizer.common import SvBaseModel, log, singleton
 from supervaizer.lifecycle import EntityEvents, EntityStatus
+from supervaizer.storage import PersistentEntityLifecycle, StorageManager
 
 if TYPE_CHECKING:
     from supervaizer.account import Account
@@ -183,12 +184,13 @@ class Case(CaseAbstractModel):
     def update(self, updateCaseNode: CaseNodeUpdate, **kwargs: Any) -> None:
         updateCaseNode.index = len(self.updates) + 1
         if updateCaseNode.error:
-            from supervaizer.storage import PersistentEntityLifecycle
-
             PersistentEntityLifecycle.handle_event(self, EntityEvents.ERROR_ENCOUNTERED)
             assert self.status == EntityStatus.FAILED  # Just to be sure
         self.account.send_update_case(self, updateCaseNode)
         self.updates.append(updateCaseNode)
+
+        storage = StorageManager()
+        storage.save_object("Case", self.to_dict)
 
     def request_human_input(
         self, updateCaseNode: CaseNodeUpdate, message: str, **kwargs: Any
@@ -203,17 +205,16 @@ class Case(CaseAbstractModel):
         PersistentEntityLifecycle.handle_event(self, EntityEvents.AWAITING_ON_INPUT)
         self.updates.append(updateCaseNode)
 
+        # Persist updated case to storage (for the updates list change)
+
+        storage = StorageManager()
+        storage.save_object("Case", self.to_dict)
+
     def receive_human_input(self, **kwargs: Any) -> None:
         # Transition from AWAITING to IN_PROGRESS
         from supervaizer.storage import PersistentEntityLifecycle
 
         PersistentEntityLifecycle.handle_event(self, EntityEvents.INPUT_RECEIVED)
-
-        # Persist updated case to storage
-        from supervaizer.storage import StorageManager
-
-        storage = StorageManager()
-        storage.save_object("Case", self.to_dict)
 
     def close(
         self,
@@ -312,7 +313,6 @@ class Case(CaseAbstractModel):
             job.add_case_id(case.id)
 
         # Transition from STOPPED to IN_PROGRESS
-        from supervaizer.storage import PersistentEntityLifecycle
 
         PersistentEntityLifecycle.handle_event(case, EntityEvents.START_WORK)
 

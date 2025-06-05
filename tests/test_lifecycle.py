@@ -80,11 +80,13 @@ class TestEntityTransitions:
             ),  # Invalid transition
         ],
     )
-    def test_can_transition(self, from_status, to_status, expected):
+    def test_can_transition(
+        self, from_status: EntityStatus, to_status: EntityStatus, expected: bool
+    ) -> None:
         """Test checking if a transition is valid."""
         assert Lifecycle.can_transition(from_status, to_status) == expected
 
-    def test_get_transition_reason(self):
+    def test_get_transition_reason(self) -> None:
         """Test getting the reason/event for a transition."""
         # Valid transition
         reason = Lifecycle.get_transition_reason(

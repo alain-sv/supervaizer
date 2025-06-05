@@ -13,13 +13,13 @@
             <p class="mt-1 text-sm text-gray-500">Interactive command interface and system logs</p>
         </div>
         <div class="mt-4 flex md:mt-0 space-x-3">
-            <button 
+            <button
                 onclick="clearConsole()"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
                 Clear
             </button>
-            <button 
+            <button
                 onclick="toggleAutoScroll()"
                 id="autoscroll-btn"
                 class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
@@ -38,14 +38,14 @@
             </div>
             <div class="px-6 py-4">
                 <div class="flex space-x-4">
-                    <input 
-                        type="text" 
-                        id="command-input" 
-                        placeholder="Enter command..." 
+                    <input
+                        type="text"
+                        id="command-input"
+                        placeholder="Enter command..."
                         class="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-mono"
                         onkeypress="handleCommandKeypress(event)"
                     >
-                    <button 
+                    <button
                         onclick="executeCommand()"
                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                     >
@@ -68,8 +68,8 @@
                 </div>
             </div>
             <div class="px-6 py-4">
-                <div 
-                    id="console-output" 
+                <div
+                    id="console-output"
                     class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-300 h-96 overflow-y-auto"
                 >
                     <div id="console-lines" class="space-y-1">
@@ -103,17 +103,17 @@
         }
 
         updateConnectionStatus('connecting');
-        
+
         // Connect to the log stream endpoint with API key as query parameter
         const apiKey = '{{ api_key }}';
         const streamUrl = apiKey ? `/admin/log-stream?key=${encodeURIComponent(apiKey)}` : '/admin/log-stream';
         eventSource = new EventSource(streamUrl);
-        
+
         eventSource.onopen = function(event) {
             updateConnectionStatus('connected');
             addLogMessage('SYSTEM', 'Connected to live log stream', 'blue');
         };
-        
+
         eventSource.onmessage = function(event) {
             try {
                 const logData = JSON.parse(event.data);
@@ -122,11 +122,11 @@
                 console.error('Failed to parse log message:', e);
             }
         };
-        
+
         eventSource.onerror = function(event) {
             updateConnectionStatus('error');
             addLogMessage('ERROR', 'Connection to log stream lost. Reconnecting...', 'red');
-            
+
             // Reconnect after 5 seconds
             clearTimeout(reconnectTimeout);
             reconnectTimeout = setTimeout(() => {
@@ -138,7 +138,7 @@
     function updateConnectionStatus(status) {
         const statusElement = document.getElementById('connection-status');
         const statusIndicator = statusElement.querySelector('.w-2.h-2');
-        
+
         switch (status) {
             case 'connecting':
                 statusIndicator.className = 'w-2 h-2 bg-yellow-400 rounded-full mr-2';
@@ -160,7 +160,7 @@
             'TRACE': 'purple',
             'DEBUG': 'gray',
             'INFO': 'blue',
-            'SUCCESS': 'green', 
+            'SUCCESS': 'green',
             'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red'
@@ -170,7 +170,7 @@
 
     function addLogMessage(level, message, color = 'green', timestamp = null) {
         const lines = document.getElementById('console-lines');
-        
+
         // Parse timestamp or use current time
         let timeStr;
         if (timestamp) {
@@ -183,17 +183,17 @@
         } else {
             timeStr = new Date().toLocaleTimeString();
         }
-        
+
         const colorMap = {
             'red': 'text-red-400',
-            'green': 'text-green-300', 
+            'green': 'text-green-300',
             'blue': 'text-blue-400',
             'yellow': 'text-yellow-400',
             'cyan': 'text-cyan-400',
             'purple': 'text-purple-400',
             'gray': 'text-gray-400'
         };
-        
+
         const div = document.createElement('div');
         div.className = 'flex space-x-2 text-xs leading-relaxed';
         div.innerHTML = `
@@ -201,10 +201,10 @@
             <span class="font-semibold min-w-[60px] flex-shrink-0 ${colorMap[color] || 'text-green-300'}">${level}</span>
             <span class="${colorMap[color] || 'text-green-300'} break-words">${escapeHtml(message)}</span>
         `;
-        
+
         lines.appendChild(div);
         lineCount++;
-        
+
         // Limit lines for performance
         if (lineCount > maxLines) {
             const firstChild = lines.firstElementChild;
@@ -213,7 +213,7 @@
                 lineCount--;
             }
         }
-        
+
         if (autoScroll) {
             const output = document.getElementById('console-output');
             output.scrollTop = output.scrollHeight;
@@ -235,22 +235,22 @@
     function executeCommand() {
         const input = document.getElementById('command-input');
         const command = input.value.trim();
-        
+
         if (!command) return;
-        
+
         // Show command in console
         addLogMessage('USER', `$ ${command}`, 'cyan');
-        
+
         // Process command
         processCommand(command);
-        
+
         // Clear input
         input.value = '';
     }
 
     function processCommand(command) {
         const cmd = command.toLowerCase();
-        
+
         switch (cmd) {
             case 'help':
                 addLogMessage('HELP', 'Available commands: status, help, clear, reconnect', 'yellow');
@@ -282,10 +282,10 @@
         const btn = document.getElementById('autoscroll-btn');
         const status = document.getElementById('autoscroll-status');
         const newText = autoScroll ? 'Auto-scroll: ON' : 'Auto-scroll: OFF';
-        
+
         btn.textContent = newText;
         status.textContent = autoScroll ? 'ON' : 'OFF';
-        
+
         if (autoScroll) {
             const output = document.getElementById('console-output');
             output.scrollTop = output.scrollHeight;
@@ -302,4 +302,4 @@
         }
     });
 </script>
-{% endblock %} 
+{% endblock %}

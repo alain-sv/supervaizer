@@ -209,17 +209,17 @@ class Lifecycle:
     @classmethod
     def get_transition_reason(
         cls, from_status: EntityStatus, to_status: EntityStatus
-    ) -> EntityEvents:
+    ) -> str:
         """Get the reason/description for a transition."""
         for event, (event_from, event_to) in cls.EVENT_TRANSITIONS.items():
             if event_from == from_status and event_to == to_status:
-                return event
+                return event.value
         return "Invalid transition"
 
     @classmethod
     def get_status_from_event(
         cls, current_status: EntityStatus, event: EntityEvents
-    ) -> EntityStatus:
+    ) -> EntityStatus | None:
         """Get the target status for a given event from the current status."""
         if event not in cls.EVENT_TRANSITIONS:
             return None
@@ -244,7 +244,9 @@ class Lifecycle:
         }
         """
         # Initialize the result dictionary with all statuses
-        result = {status: {} for status in EntityStatus}
+        result: Dict[EntityStatus, Dict[EntityStatus, EntityEvents]] = {
+            status: {} for status in EntityStatus
+        }
 
         # Populate with transitions from EVENT_TRANSITIONS
         for event, (from_status, to_status) in cls.EVENT_TRANSITIONS.items():
@@ -315,7 +317,7 @@ JobTransitions = Lifecycle
 class WorkflowEntity(Protocol):
     """Protocol that defines the interface required for an entity to work with lifecycle transitions."""
 
-    status: str
+    status: EntityStatus
     finished_at: Any
     id: Any
     name: str

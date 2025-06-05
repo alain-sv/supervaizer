@@ -1,14 +1,21 @@
 # Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
 #
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, you can obtain one at
+# https://mozilla.org/MPL/2.0/.
+
+# Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
+import os
 import threading
 from pathlib import Path
-from typing import Generic, TypeVar, Dict, List, Optional, Any, TYPE_CHECKING
-import os
-from tinydb import TinyDB, Query
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
+
+from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 
@@ -16,8 +23,9 @@ from supervaizer.common import log, singleton
 from supervaizer.lifecycle import WorkflowEntity
 
 if TYPE_CHECKING:
-    from supervaizer.job import Job
     from supervaizer.case import Case
+    from supervaizer.job import Job
+    from supervaizer.lifecycle import EntityEvents, EntityStatus
 
 T = TypeVar("T", bound=WorkflowEntity)
 
@@ -239,7 +247,7 @@ class EntityRepository(Generic[T]):
     def _to_dict(self, entity: T) -> Dict[str, Any]:
         """Convert entity to dictionary using its to_dict property."""
         if hasattr(entity, "to_dict"):
-            return entity.to_dict
+            return dict(entity.to_dict)
         else:
             # Fallback for entities without to_dict
             return {
@@ -257,7 +265,7 @@ class EntityRepository(Generic[T]):
         """
         # For entities inheriting from SvBaseModel (Pydantic), use model construction
         if hasattr(self.entity_class, "model_validate"):
-            return self.entity_class.model_validate(data)
+            return self.entity_class.model_validate(data)  # type: ignore
         else:
             # Fallback for other types
             return self.entity_class(**data)
@@ -335,14 +343,14 @@ class PersistentEntityLifecycle:
         return success, error
 
 
-def create_job_repository() -> EntityRepository["Job"]:
+def create_job_repository() -> "EntityRepository[Job]":
     """Factory function to create a Job repository."""
     from supervaizer.job import Job
 
     return EntityRepository(Job)
 
 
-def create_case_repository() -> EntityRepository["Case"]:
+def create_case_repository() -> "EntityRepository[Case]":
     """Factory function to create a Case repository."""
     from supervaizer.case import Case
 

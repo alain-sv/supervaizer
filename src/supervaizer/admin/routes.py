@@ -1,34 +1,39 @@
 # Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
 #
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, you can obtain one at
+# https://mozilla.org/MPL/2.0/.
+
+# Copyright (c) 2024-2025 Alain Prasquier - Supervaize.com. All rights reserved.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 # If a copy of the MPL was not distributed with this file, You can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
-import os
 import asyncio
 import json
+import os
 import time
-import psutil
-from pathlib import Path
-from typing import Dict, Optional, AsyncGenerator, List
 from datetime import datetime
+from pathlib import Path
+from typing import AsyncGenerator, Dict, List, Optional
 
-from fastapi import APIRouter, Request, HTTPException, Depends, Query, Security
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+import psutil
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi.responses import HTMLResponse, Response
 from fastapi.security import APIKeyHeader
-from sse_starlette.sse import EventSourceResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
-from fastapi.responses import Response
 from supervaizer.__version__ import API_VERSION
-from supervaizer.storage import (
-    StorageManager,
-    create_job_repository,
-    create_case_repository,
-)
 from supervaizer.common import log
 from supervaizer.lifecycle import EntityStatus
+from supervaizer.storage import (
+    StorageManager,
+    create_case_repository,
+    create_job_repository,
+)
 
 # Global log queue for streaming
 log_queue: asyncio.Queue[Dict[str, str]] = asyncio.Queue()
@@ -804,24 +809,28 @@ def create_admin_routes() -> APIRouter:
             # Combine and sort by created_at
             activities = []
             for job in recent_jobs:
-                activities.append({
-                    "type": "job",
-                    "id": job.get("id"),
-                    "name": job.get("name"),
-                    "status": job.get("status"),
-                    "created_at": job.get("created_at"),
-                    "agent_name": job.get("agent_name"),
-                })
+                activities.append(
+                    {
+                        "type": "job",
+                        "id": job.get("id"),
+                        "name": job.get("name"),
+                        "status": job.get("status"),
+                        "created_at": job.get("created_at"),
+                        "agent_name": job.get("agent_name"),
+                    }
+                )
 
             for case in recent_cases:
-                activities.append({
-                    "type": "case",
-                    "id": case.get("id"),
-                    "name": case.get("name"),
-                    "status": case.get("status"),
-                    "created_at": case.get("created_at"),
-                    "job_id": case.get("job_id"),
-                })
+                activities.append(
+                    {
+                        "type": "case",
+                        "id": case.get("id"),
+                        "name": case.get("name"),
+                        "status": case.get("status"),
+                        "created_at": case.get("created_at"),
+                        "job_id": case.get("job_id"),
+                    }
+                )
 
             # Sort by created_at descending
             activities.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
@@ -866,11 +875,13 @@ def create_admin_routes() -> APIRouter:
                 pass
             except Exception as e:
                 # Send error and close
-                error_data = json.dumps({
-                    "timestamp": datetime.now().isoformat(),
-                    "level": "ERROR",
-                    "message": f"Log stream error: {str(e)}",
-                })
+                error_data = json.dumps(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "level": "ERROR",
+                        "message": f"Log stream error: {str(e)}",
+                    }
+                )
                 yield f"data: {error_data}\n\n"
 
         return EventSourceResponse(generate_log_events())
@@ -887,23 +898,23 @@ def get_dashboard_stats(storage: StorageManager) -> AdminStats:
 
         # Calculate job stats
         job_total = len(all_jobs)
-        job_running = len([
-            j for j in all_jobs if j.get("status") in ["in_progress", "awaiting"]
-        ])
+        job_running = len(
+            [j for j in all_jobs if j.get("status") in ["in_progress", "awaiting"]]
+        )
         job_completed = len([j for j in all_jobs if j.get("status") == "completed"])
-        job_failed = len([
-            j for j in all_jobs if j.get("status") in ["failed", "cancelled"]
-        ])
+        job_failed = len(
+            [j for j in all_jobs if j.get("status") in ["failed", "cancelled"]]
+        )
 
         # Calculate case stats
         case_total = len(all_cases)
-        case_running = len([
-            c for c in all_cases if c.get("status") in ["in_progress", "awaiting"]
-        ])
+        case_running = len(
+            [c for c in all_cases if c.get("status") in ["in_progress", "awaiting"]]
+        )
         case_completed = len([c for c in all_cases if c.get("status") == "completed"])
-        case_failed = len([
-            c for c in all_cases if c.get("status") in ["failed", "cancelled"]
-        ])
+        case_failed = len(
+            [c for c in all_cases if c.get("status") in ["failed", "cancelled"]]
+        )
 
         # TinyDB collections count (tables)
         collections_count = len(storage._db.tables())
