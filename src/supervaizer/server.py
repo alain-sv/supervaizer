@@ -45,7 +45,7 @@ from supervaizer.routes import (
     create_utils_routes,
     get_server,
 )
-from supervaizer.storage import StorageManager
+from supervaizer.storage import StorageManager, load_running_entities_on_startup
 
 insp = inspect
 
@@ -77,13 +77,11 @@ def save_server_info_to_storage(server_instance: "Server") -> None:
         agents = []
         if hasattr(server_instance, "agents") and server_instance.agents:
             for agent in server_instance.agents:
-                agents.append(
-                    {
-                        "name": agent.name,
-                        "description": agent.description,
-                        "version": agent.version,
-                    }
-                )
+                agents.append({
+                    "name": agent.name,
+                    "description": agent.description,
+                    "version": agent.version,
+                })
 
         # Create server info
         server_info = ServerInfo(
@@ -318,6 +316,15 @@ class Server(AbstractServer):
 
             # Save server info to storage for admin interface
             save_server_info_to_storage(self)
+
+        # Load running entities from storage into memory
+        log.info("[Server launch] Loading running entities from storage...")
+        try:
+            load_running_entities_on_startup()
+        except Exception as e:
+            log.error(f"[Server launch] Failed to load running entities: {e}")
+            # Don't fail server startup if entity loading fails
+            pass
 
         # Override the get_server dependency to return this instance
         async def get_current_server() -> "Server":

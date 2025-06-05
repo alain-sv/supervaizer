@@ -79,7 +79,7 @@ def handle_route_errors(
     ) -> Callable[..., Awaitable[Union[T, JSONResponse]]]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Union[T, JSONResponse]:
-            log.debug(f"------[DEBUG]----------\n args :{args} \n kwargs :{kwargs}")
+            # log.debug(f"------[DEBUG]----------\n args :{args} \n kwargs :{kwargs}")
             try:
                 result: T = await func(*args, **kwargs)
                 return result

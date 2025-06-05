@@ -30,6 +30,9 @@ class Jobs:
         # Structure: {agent_name: {job_id: Job}}
         self.jobs_by_agent: dict[str, dict[str, "Job"]] = {}
 
+    def reset(self) -> None:
+        self.jobs_by_agent.clear()
+
     def add_job(self, job: "Job") -> None:
         """Add a job to the registry under its agent
 

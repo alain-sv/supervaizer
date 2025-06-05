@@ -171,8 +171,31 @@ storage.save_object("Case", case.to_dict)
 
 ### Loading Data on Startup
 
+The system automatically loads running entities from storage during server startup. This ensures that after a server restart, all running workflows continue to be accessible through the in-memory registries.
+
+#### Automatic Loading
+
+The server startup process includes automatic loading of running entities:
+
 ```python
-def load_entities_on_startup():
+# This happens automatically during server initialization
+load_running_entities_on_startup()
+```
+
+Only entities in running states are loaded:
+
+- `IN_PROGRESS`
+- `CANCELLING`
+- `AWAITING`
+
+This selective loading ensures that only active workflows are restored to memory, keeping the system efficient.
+
+#### Manual Loading (All Entities)
+
+For testing or special cases, you can manually load all entities:
+
+```python
+def load_all_entities_on_startup():
     """Load all entities from storage and populate registries."""
     storage = StorageManager()
 

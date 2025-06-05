@@ -330,6 +330,9 @@ class Cases:
         # Structure: {job_id: {case_id: Case}}
         self.cases_by_job: dict[str, dict[str, "Case"]] = {}
 
+    def reset(self) -> None:
+        self.cases_by_job.clear()
+
     def add_case(self, case: "Case") -> None:
         """Add a case to the registry under its job
 

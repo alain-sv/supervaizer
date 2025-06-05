@@ -81,7 +81,7 @@ class StorageManager:
             query = Query()
             table.upsert(obj, query.id == obj_id)
 
-            log.debug(f"Saved {type} object with ID: {obj_id}")
+            log.debug(f"Saved object with ID: {type} {obj_id} - {obj}")
 
     def get_objects(self, type: str) -> List[Dict[str, Any]]:
         """
@@ -95,7 +95,8 @@ class StorageManager:
         """
         with self._lock:
             table = self._db.table(type)
-            return table.all()
+            documents = table.all()
+            return [dict(doc) for doc in documents]
 
     def get_object_by_id(self, type: str, obj_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -159,7 +160,8 @@ class StorageManager:
         with self._lock:
             table = self._db.table("Case")
             query = Query()
-            return table.search(query.job_id == job_id)
+            documents = table.search(query.job_id == job_id)
+            return [dict(doc) for doc in documents]
 
     def close(self) -> None:
         """Close the database connection."""
@@ -253,7 +255,7 @@ class EntityRepository(Generic[T]):
             # Fallback for entities without to_dict
             return {
                 field: getattr(entity, field)
-                for field in entity.__dataclass_fields__
+                for field in getattr(entity, "__dataclass_fields__", {})
                 if hasattr(entity, field)
             }
 
@@ -356,3 +358,79 @@ def create_case_repository() -> "EntityRepository[Case]":
     from supervaizer.case import Case
 
     return EntityRepository(Case)
+
+
+def load_running_entities_on_startup() -> None:
+    """
+    Load all running entities from storage and populate registries at startup.
+
+    This function loads jobs and cases that are in running states:
+    - IN_PROGRESS
+    - CANCELLING
+    - AWAITING
+
+    This ensures that after a server restart, all running workflows
+    continue to be accessible through the in-memory registries.
+    """
+    from supervaizer.case import Case, Cases
+    from supervaizer.job import Job, Jobs
+    from supervaizer.lifecycle import EntityStatus
+
+    storage = StorageManager()
+
+    # Clear existing registries to start fresh
+    Jobs().reset()
+    Cases().reset()
+
+    # Define running statuses
+    running_statuses = [
+        EntityStatus.IN_PROGRESS,
+        EntityStatus.CANCELLING,
+        EntityStatus.AWAITING,
+    ]
+
+    # Load running jobs
+    job_data_list = storage.get_objects("Job")
+    loaded_jobs = 0
+
+    for job_data in job_data_list:
+        job_status = job_data.get("status")
+        if job_status in [status.value for status in running_statuses]:
+            try:
+                # Use model_construct to avoid triggering __init__ side effects
+                job = Job.model_construct(**job_data)
+                # Manually add to registry since we bypassed __init__
+                Jobs().add_job(job)
+                loaded_jobs += 1
+                log.debug(
+                    f"[Startup] Loaded running job: {job.id} (status: {job.status})"
+                )
+            except Exception as e:
+                log.error(
+                    f"[Startup] Failed to load job {job_data.get('id', 'unknown')}: {e}"
+                )
+
+    # Load running cases
+    case_data_list = storage.get_objects("Case")
+    loaded_cases = 0
+
+    for case_data in case_data_list:
+        case_status = case_data.get("status")
+        if case_status in [status.value for status in running_statuses]:
+            try:
+                # Use model_construct to avoid triggering __init__ side effects
+                case = Case.model_construct(**case_data)
+                # Manually add to registry since we bypassed __init__
+                Cases().add_case(case)
+                loaded_cases += 1
+                log.debug(
+                    f"[Startup] Loaded running case: {case.id} (status: {case.status}, job: {case.job_id})"
+                )
+            except Exception as e:
+                log.error(
+                    f"[Startup] Failed to load case {case_data.get('id', 'unknown')}: {e}"
+                )
+
+    log.info(
+        f"[Startup] Entity loading complete: {loaded_jobs} running jobs, {loaded_cases} running cases"
+    )
