@@ -297,32 +297,54 @@
     function processCommand(command) {
         const cmd = command.toLowerCase();
 
-        switch (cmd) {
-            case 'help':
-                addLogMessage('HELP', 'Available commands: status, help, clear, reconnect, debug', 'yellow');
-                break;
-            case 'status':
-                const status = eventSource ? 
-                    (eventSource.readyState === EventSource.OPEN ? 'Connected' : 
-                     eventSource.readyState === EventSource.CONNECTING ? 'Connecting' : 'Disconnected') 
-                    : 'Not initialized';
-                addLogMessage('INFO', `Log Stream Status: ${status}`, 'blue');
-                addLogMessage('INFO', `EventSource readyState: ${eventSource ? eventSource.readyState : 'null'}`, 'blue');
-                break;
-            case 'clear':
-                clearConsole();
-                return;
-            case 'reconnect':
-                addLogMessage('INFO', 'Reconnecting to log stream...', 'blue');
-                connectToLogStream();
-                break;
-            case 'debug':
-                addLogMessage('DEBUG', `Console Token: ${('{{ console_token }}').substring(0, 10)}...`, 'gray');
-                addLogMessage('DEBUG', `EventSource URL: ${eventSource ? eventSource.url : 'none'}`, 'gray');
-                addLogMessage('DEBUG', `ReadyState: ${eventSource ? eventSource.readyState : 'none'}`, 'gray');
-                break;
-            default:
-                addLogMessage('ERROR', `Unknown command: ${command}. Type 'help' for available commands.`, 'red');
+        // Handle local-only commands
+        if (cmd === 'clear') {
+            clearConsole();
+            return;
+        }
+        
+        if (cmd === 'reconnect') {
+            addLogMessage('INFO', 'Reconnecting to log stream...', 'blue');
+            connectToLogStream();
+            return;
+        }
+
+        // Send command to server for processing and live console display
+        sendCommandToServer(command);
+    }
+
+    async function sendCommandToServer(command) {
+        const consoleToken = '{{ console_token }}';
+        
+        if (!consoleToken || consoleToken === 'undefined' || consoleToken === '') {
+            addLogMessage('ERROR', 'No console token available. Cannot execute command.', 'red');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/api/console/execute?token=${encodeURIComponent(consoleToken)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    command: command
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.status === 'error') {
+                addLogMessage('ERROR', `Command failed: ${result.message}`, 'red');
+            }
+            // Success messages are handled by the log stream
+            
+        } catch (error) {
+            addLogMessage('ERROR', `Failed to execute command: ${error.message}`, 'red');
         }
     }
 

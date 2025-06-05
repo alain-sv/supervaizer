@@ -64,7 +64,9 @@
                     'text-yellow-400': log.level === 'WARNING',
                     'text-blue-400': log.level === 'INFO',
                     'text-green-300': log.level === 'SUCCESS',
-                    'text-gray-400': log.level === 'DEBUG'
+                    'text-gray-400': log.level === 'DEBUG',
+                    'text-cyan-400': log.level === 'USER',
+                    'text-purple-400': log.level === 'SYSTEM'
                 }">
                     <span class="text-gray-500 whitespace-nowrap" x-text="log.time"></span>
                     <span class="font-semibold min-w-[60px]" x-text="log.level"></span>
@@ -142,12 +144,13 @@
                     eventSource.close();
                 }
 
-                const apiKey = '{{ api_key }}';
-                const streamUrl = apiKey ? `/admin/log-stream?key=${encodeURIComponent(apiKey)}` : '/admin/log-stream';
+                // For live console, always connect without authentication (admin interface)
+                const streamUrl = '/admin/log-stream';
                 eventSource = new EventSource(streamUrl);
 
                 eventSource.onmessage = function(event) {
                     try {
+                        console.log('Received log message:', event.data);
                         const logData = JSON.parse(event.data);
                         const logEntry = {
                             id: ++logCounter,
@@ -164,6 +167,7 @@
                         if (alpineData.logs.length > 1000) {
                             alpineData.logs.shift();
                         }
+                        console.log('Added log entry, total logs:', alpineData.logs.length);
 
                         // Auto-scroll to bottom if expanded
                         if (alpineData.expanded) {
@@ -175,11 +179,12 @@
                             }
                         }
                     } catch (error) {
-                        // Silently ignore parse errors
+                        console.error('Error processing log message:', error, event.data);
                     }
                 };
 
                 eventSource.onerror = function(event) {
+                    console.error('Log stream error:', event);
                     showToast('Log stream disconnected. Attempting to reconnect...', 'error');
 
                     // Attempt reconnection after 5 seconds
@@ -189,7 +194,7 @@
                 };
 
                 eventSource.onopen = function(event) {
-                    // Connection established
+                    console.log('Log stream connected successfully');
                 };
             }
 

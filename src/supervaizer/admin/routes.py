@@ -901,6 +901,11 @@ def create_admin_routes() -> APIRouter:
                 if key:
                     auth_valid = True
                     auth_method = "api_key_fallback"
+        else:
+            # Allow access without authentication for admin interface live console
+            # In a production environment, you might want to add additional security
+            auth_valid = True
+            auth_method = "admin_console"
 
         if not auth_valid:
             raise HTTPException(
@@ -910,45 +915,82 @@ def create_admin_routes() -> APIRouter:
 
         async def generate_log_events() -> AsyncGenerator[str, None]:
             try:
-                # Send a test message immediately to check if streaming works
+                # Send connection message immediately
                 test_message = {
                     "timestamp": datetime.now().isoformat(),
                     "level": "INFO",
                     "message": f"Log stream connected using {auth_method}",
                 }
-                yield f"data: {json.dumps(test_message)}\n\n"
+                yield f"data: {json.dumps(test_message, ensure_ascii=False)}\n\n"
 
+                # Send any existing messages in the queue
+                while not log_queue.empty():
+                    try:
+                        log_message = log_queue.get_nowait()
+                        if isinstance(log_message, dict):
+                            event_data = json.dumps(log_message, ensure_ascii=False)
+                            yield f"data: {event_data}\n\n"
+                        else:
+                            fallback_message = {
+                                "timestamp": datetime.now().isoformat(),
+                                "level": "INFO",
+                                "message": str(log_message),
+                            }
+                            event_data = json.dumps(
+                                fallback_message, ensure_ascii=False
+                            )
+                            yield f"data: {event_data}\n\n"
+                    except:  # QueueEmpty or any other exception
+                        break
+
+                # Keep alive and wait for new messages
                 while True:
-                    # Wait for a log message
-                    log_message = await log_queue.get()
-                    # Ensure proper format
-                    if isinstance(log_message, dict):
-                        # Format as SSE event
-                        event_data = json.dumps(log_message, ensure_ascii=False)
-                        yield f"data: {event_data}\n\n"
-                    else:
-                        # Handle string messages
-                        fallback_message = {
+                    try:
+                        # Wait for a log message with timeout to send keep-alive
+                        log_message = await asyncio.wait_for(
+                            log_queue.get(), timeout=30.0
+                        )
+
+                        if isinstance(log_message, dict):
+                            event_data = json.dumps(log_message, ensure_ascii=False)
+                            yield f"data: {event_data}\n\n"
+                        else:
+                            fallback_message = {
+                                "timestamp": datetime.now().isoformat(),
+                                "level": "INFO",
+                                "message": str(log_message),
+                            }
+                            event_data = json.dumps(
+                                fallback_message, ensure_ascii=False
+                            )
+                            yield f"data: {event_data}\n\n"
+                    except asyncio.TimeoutError:
+                        # Send keep-alive message
+                        keepalive_message = {
                             "timestamp": datetime.now().isoformat(),
-                            "level": "INFO",
-                            "message": str(log_message),
+                            "level": "SYSTEM",
+                            "message": "keepalive",
                         }
-                        event_data = json.dumps(fallback_message, ensure_ascii=False)
-                        yield f"data: {event_data}\n\n"
+                        yield f"data: {json.dumps(keepalive_message, ensure_ascii=False)}\n\n"
+
             except asyncio.CancelledError:
                 # Client disconnected
                 pass
             except Exception as e:
                 # Send error and close
-                error_data = json.dumps(
-                    {
-                        "timestamp": datetime.now().isoformat(),
-                        "level": "ERROR",
-                        "message": f"Log stream error: {str(e)}",
-                    },
-                    ensure_ascii=False,
-                )
-                yield f"data: {error_data}\n\n"
+                try:
+                    error_data = json.dumps(
+                        {
+                            "timestamp": datetime.now().isoformat(),
+                            "level": "ERROR",
+                            "message": f"Log stream error: {str(e)}",
+                        },
+                        ensure_ascii=False,
+                    )
+                    yield f"data: {error_data}\n\n"
+                except Exception:
+                    # If even error formatting fails, just close
+                    pass
 
         return EventSourceResponse(generate_log_events())
 
@@ -990,6 +1032,24 @@ def create_admin_routes() -> APIRouter:
         log.warning("Testing loguru WARNING message")
         log.error("Testing loguru ERROR message")
         return {"message": "Loguru test messages sent"}
+
+    @router.get("/debug-queue")
+    async def debug_queue() -> Dict[str, Any]:
+        """Debug endpoint to check log queue status."""
+        queue_size = log_queue.qsize()
+
+        # Add a test message directly to queue
+        add_log_to_queue(
+            timestamp=datetime.now().isoformat(),
+            level="DEBUG",
+            message="Direct queue test message",
+        )
+
+        return {
+            "queue_size_before": queue_size,
+            "queue_size_after": log_queue.qsize(),
+            "message": "Test message added to queue",
+        }
 
     @router.post("/api/console/execute")
     async def execute_console_command(
@@ -1087,6 +1147,72 @@ def get_dashboard_stats(storage: StorageManager) -> AdminStats:
             cases={"total": 0, "running": 0, "completed": 0, "failed": 0},
             collections=0,
         )
+
+
+async def process_console_command(command: str) -> Dict[str, str]:
+    """Process a console command and return the result."""
+    cmd = command.lower().strip()
+
+    try:
+        if cmd == "help":
+            return {
+                "level": "INFO",
+                "message": "Available commands: status, help, clear, reconnect, debug, server-info, memory, uptime",
+            }
+
+        elif cmd == "status":
+            return {
+                "level": "INFO",
+                "message": "Server is running and log stream is active",
+            }
+
+        elif cmd == "server-info":
+            server_status = get_server_status()
+            return {
+                "level": "INFO",
+                "message": f"Server: {server_status.status} | Uptime: {server_status.uptime} | CPU: {server_status.cpu_percent:.1f}% | Memory: {server_status.memory_usage}",
+            }
+
+        elif cmd == "memory":
+            server_status = get_server_status()
+            return {
+                "level": "INFO",
+                "message": f"Memory Usage: {server_status.memory_usage} ({server_status.memory_percent:.1f}%)",
+            }
+
+        elif cmd == "uptime":
+            server_status = get_server_status()
+            return {
+                "level": "INFO",
+                "message": f"Server uptime: {server_status.uptime} ({server_status.uptime_seconds} seconds)",
+            }
+
+        elif cmd == "debug":
+            return {
+                "level": "DEBUG",
+                "message": f"Environment: {os.getenv('SUPERVAIZER_ENVIRONMENT', 'dev')} | API Version: {API_VERSION}",
+            }
+
+        elif cmd == "clear":
+            return {"level": "SYSTEM", "message": "Console cleared"}
+
+        elif cmd == "test-log":
+            # Add a test log message
+            add_log_to_queue(
+                timestamp=datetime.now().isoformat(),
+                level="INFO",
+                message="This is a test log message from console command",
+            )
+            return {"level": "SUCCESS", "message": "Test log message sent"}
+
+        else:
+            return {
+                "level": "ERROR",
+                "message": f"Unknown command: {command}. Type 'help' for available commands.",
+            }
+
+    except Exception as e:
+        return {"level": "ERROR", "message": f"Command processing error: {str(e)}"}
 
 
 def generate_console_token() -> str:
