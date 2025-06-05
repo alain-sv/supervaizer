@@ -5,6 +5,24 @@
 # If a copy of the MPL was not distributed with this file, you can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
+import logging
+from loguru import logger
+
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.log(level, record.getMessage())
+
+
+logging.basicConfig(handlers=[InterceptHandler()], level=0)
+for name in logging.root.manager.loggerDict:
+    logging.getLogger(name).handlers = [InterceptHandler()]
+
 """
 Supervaizer Server with Admin Interface
 """

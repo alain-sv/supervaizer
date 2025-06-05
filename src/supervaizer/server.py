@@ -424,17 +424,23 @@ class Server(AbstractServer):
                 def log_queue_handler(message: Any) -> None:
                     record = message.record
                     try:
-                        from supervaizer.admin.routes import add_log_to_queue
+                        # Import here to avoid circular imports and ensure module is loaded
+                        import supervaizer.admin.routes as admin_routes
 
-                        add_log_to_queue(
+                        admin_routes.add_log_to_queue(
                             timestamp=record["time"].isoformat(),
                             level=record["level"].name,
                             message=record["message"],
                         )
                     except ImportError:
-                        pass  # Silently ignore if admin routes not available
+                        # Silently ignore import errors to avoid breaking logging
+                        pass
+                    except Exception:
+                        # Silently ignore other errors to avoid breaking logging
+                        pass
 
-                log.add(log_queue_handler, level=log_level)
+                # Add the handler with a specific format to avoid recursion
+                log.add(log_queue_handler, level=log_level, format="{message}")
 
             log_level = (
                 log_level.lower()

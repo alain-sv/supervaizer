@@ -104,53 +104,94 @@
 
         updateConnectionStatus('connecting');
 
-        // Connect to the log stream endpoint with API key as query parameter
-        const apiKey = '{{ api_key }}';
-        const streamUrl = apiKey ? `/admin/log-stream?key=${encodeURIComponent(apiKey)}` : '/admin/log-stream';
-        eventSource = new EventSource(streamUrl);
-
-        eventSource.onopen = function(event) {
-            updateConnectionStatus('connected');
-            addLogMessage('SYSTEM', 'Connected to live log stream', 'blue');
-        };
-
-        eventSource.onmessage = function(event) {
-            try {
-                const logData = JSON.parse(event.data);
-                addLogMessage(logData.level, logData.message, getLevelColor(logData.level), logData.timestamp);
-            } catch (e) {
-                console.error('Failed to parse log message:', e);
-            }
-        };
-
-        eventSource.onerror = function(event) {
+        // Connect to the log stream endpoint with console token
+        const consoleToken = '{{ console_token }}';
+        const cacheBuster = Date.now();
+        
+        // Better validation and error handling
+        if (!consoleToken || consoleToken === 'undefined' || consoleToken === '') {
+            addLogMessage('ERROR', 'No console token available. Please refresh the page.', 'red');
             updateConnectionStatus('error');
-            addLogMessage('ERROR', 'Connection to log stream lost. Reconnecting...', 'red');
+            return;
+        }
 
-            // Reconnect after 5 seconds
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = setTimeout(() => {
-                connectToLogStream();
-            }, 5000);
-        };
+        const streamUrl = `/admin/log-stream?token=${encodeURIComponent(consoleToken)}&_t=${cacheBuster}`;
+        
+        try {
+            eventSource = new EventSource(streamUrl);
+
+            eventSource.onopen = function(event) {
+                updateConnectionStatus('connected');
+                addLogMessage('SYSTEM', 'Connected to live log stream', 'blue');
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    // Handle different event data formats
+                    let logData;
+                    if (event.data.startsWith('data: ')) {
+                        // Remove "data: " prefix if present
+                        logData = JSON.parse(event.data.substring(6));
+                    } else {
+                        logData = JSON.parse(event.data);
+                    }
+                    
+                    if (logData && logData.level && logData.message) {
+                        addLogMessage(logData.level, logData.message, getLevelColor(logData.level), logData.timestamp);
+                    } else {
+                        addLogMessage('WARNING', 'Received invalid log data format', 'yellow');
+                    }
+                } catch (e) {
+                    addLogMessage('ERROR', `Parse error: ${e.message}`, 'red');
+                }
+            };
+
+            eventSource.onerror = function(event) {
+                updateConnectionStatus('error');
+                
+                // More specific error handling
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    addLogMessage('ERROR', 'Connection to log stream closed by server', 'red');
+                } else if (eventSource.readyState === EventSource.CONNECTING) {
+                    addLogMessage('WARNING', 'Attempting to reconnect to log stream...', 'yellow');
+                } else {
+                    addLogMessage('ERROR', 'Unknown log stream error occurred', 'red');
+                }
+
+                // Reconnect after 5 seconds
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = setTimeout(() => {
+                    addLogMessage('INFO', 'Attempting to reconnect...', 'blue');
+                    connectToLogStream();
+                }, 5000);
+            };
+        } catch (e) {
+            addLogMessage('ERROR', `Failed to create connection: ${e.message}`, 'red');
+            updateConnectionStatus('error');
+        }
     }
 
     function updateConnectionStatus(status) {
         const statusElement = document.getElementById('connection-status');
+        if (!statusElement) return;
+        
         const statusIndicator = statusElement.querySelector('.w-2.h-2');
+        const statusText = statusElement.querySelector('span:last-child');
+        
+        if (!statusIndicator || !statusText) return;
 
         switch (status) {
             case 'connecting':
-                statusIndicator.className = 'w-2 h-2 bg-yellow-400 rounded-full mr-2';
-                statusElement.querySelector('span:last-child').textContent = 'Connecting...';
+                statusIndicator.className = 'w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse';
+                statusText.textContent = 'Connecting...';
                 break;
             case 'connected':
                 statusIndicator.className = 'w-2 h-2 bg-green-400 rounded-full mr-2';
-                statusElement.querySelector('span:last-child').textContent = 'Connected';
+                statusText.textContent = 'Connected';
                 break;
             case 'error':
-                statusIndicator.className = 'w-2 h-2 bg-red-400 rounded-full mr-2';
-                statusElement.querySelector('span:last-child').textContent = 'Disconnected';
+                statusIndicator.className = 'w-2 h-2 bg-red-400 rounded-full mr-2 animate-pulse';
+                statusText.textContent = 'Disconnected';
                 break;
         }
     }
@@ -170,6 +211,7 @@
 
     function addLogMessage(level, message, color = 'green', timestamp = null) {
         const lines = document.getElementById('console-lines');
+        if (!lines) return;
 
         // Parse timestamp or use current time
         let timeStr;
@@ -216,7 +258,9 @@
 
         if (autoScroll) {
             const output = document.getElementById('console-output');
-            output.scrollTop = output.scrollHeight;
+            if (output) {
+                output.scrollTop = output.scrollHeight;
+            }
         }
     }
 
@@ -234,6 +278,8 @@
 
     function executeCommand() {
         const input = document.getElementById('command-input');
+        if (!input) return;
+        
         const command = input.value.trim();
 
         if (!command) return;
@@ -253,11 +299,15 @@
 
         switch (cmd) {
             case 'help':
-                addLogMessage('HELP', 'Available commands: status, help, clear, reconnect', 'yellow');
+                addLogMessage('HELP', 'Available commands: status, help, clear, reconnect, debug', 'yellow');
                 break;
             case 'status':
-                const status = eventSource ? (eventSource.readyState === EventSource.OPEN ? 'Connected' : 'Disconnected') : 'Not initialized';
+                const status = eventSource ? 
+                    (eventSource.readyState === EventSource.OPEN ? 'Connected' : 
+                     eventSource.readyState === EventSource.CONNECTING ? 'Connecting' : 'Disconnected') 
+                    : 'Not initialized';
                 addLogMessage('INFO', `Log Stream Status: ${status}`, 'blue');
+                addLogMessage('INFO', `EventSource readyState: ${eventSource ? eventSource.readyState : 'null'}`, 'blue');
                 break;
             case 'clear':
                 clearConsole();
@@ -266,29 +316,41 @@
                 addLogMessage('INFO', 'Reconnecting to log stream...', 'blue');
                 connectToLogStream();
                 break;
+            case 'debug':
+                addLogMessage('DEBUG', `Console Token: ${('{{ console_token }}').substring(0, 10)}...`, 'gray');
+                addLogMessage('DEBUG', `EventSource URL: ${eventSource ? eventSource.url : 'none'}`, 'gray');
+                addLogMessage('DEBUG', `ReadyState: ${eventSource ? eventSource.readyState : 'none'}`, 'gray');
+                break;
             default:
                 addLogMessage('ERROR', `Unknown command: ${command}. Type 'help' for available commands.`, 'red');
         }
     }
 
     function clearConsole() {
-        document.getElementById('console-lines').innerHTML = '';
-        lineCount = 0;
-        addLogMessage('SYSTEM', 'Console cleared.', 'blue');
+        const lines = document.getElementById('console-lines');
+        if (lines) {
+            lines.innerHTML = '';
+            lineCount = 0;
+            addLogMessage('SYSTEM', 'Console cleared.', 'blue');
+        }
     }
 
     function toggleAutoScroll() {
         autoScroll = !autoScroll;
         const btn = document.getElementById('autoscroll-btn');
         const status = document.getElementById('autoscroll-status');
-        const newText = autoScroll ? 'Auto-scroll: ON' : 'Auto-scroll: OFF';
-
-        btn.textContent = newText;
-        status.textContent = autoScroll ? 'ON' : 'OFF';
+        
+        if (btn && status) {
+            const newText = autoScroll ? 'Auto-scroll: ON' : 'Auto-scroll: OFF';
+            btn.textContent = newText;
+            status.textContent = autoScroll ? 'ON' : 'OFF';
+        }
 
         if (autoScroll) {
             const output = document.getElementById('console-output');
-            output.scrollTop = output.scrollHeight;
+            if (output) {
+                output.scrollTop = output.scrollHeight;
+            }
         }
     }
 

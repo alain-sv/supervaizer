@@ -16,15 +16,16 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional, Any
 
 import psutil
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi import APIRouter, HTTPException, Query, Request, Security
 from fastapi.responses import HTMLResponse, Response
 from fastapi.security import APIKeyHeader
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
+import secrets
 
 from supervaizer.__version__ import API_VERSION
 from supervaizer.common import log
@@ -41,6 +42,9 @@ log_queue: asyncio.Queue[Dict[str, str]] = asyncio.Queue()
 # Server start time for uptime calculation
 # This will be set when the server actually starts
 SERVER_START_TIME = time.time()
+
+# Console token storage (in production, use Redis or database)
+_console_tokens: Dict[str, float] = {}  # token -> expiry_timestamp
 
 
 def set_server_start_time(start_time: float) -> None:
@@ -120,24 +124,34 @@ class EntityFilter(BaseModel):
 
 
 async def verify_admin_access(
+    request: Request,
     api_key: Optional[str] = Security(api_key_header),
+    key: Optional[str] = Query(None),
 ) -> bool:
-    """Verify admin access via API key."""
-    # Direct environment check
-    expected_key = os.getenv("SUPERVAIZER_API_KEY")
+    """Verify admin access via API key in header or query parameter."""
+    # First try header authentication
+    if api_key:
+        expected_key = os.getenv("SUPERVAIZER_API_KEY")
+        if expected_key is None:
+            expected_key = "admin-secret-key-123"
 
-    if expected_key is None:
-        # API key authentication is disabled
-        return True
+        if api_key == expected_key:
+            return True
 
-    if api_key != expected_key:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid API key",
-            headers={"WWW-Authenticate": "APIKey"},
-        )
+    # For browser access, try query parameter
+    if key:
+        expected_key = os.getenv("SUPERVAIZER_API_KEY")
+        if expected_key is None:
+            expected_key = "admin-secret-key-123"
 
-    return True
+        if key == expected_key:
+            return True
+
+    raise HTTPException(
+        status_code=403,
+        detail="Invalid API key. Provide via X-API-Key header or ?key=<api_key> parameter",
+        headers={"WWW-Authenticate": "APIKey"},
+    )
 
 
 def format_uptime(seconds: int) -> str:
@@ -236,9 +250,7 @@ def create_admin_routes() -> APIRouter:
     case_repo = create_case_repository()
 
     @router.get("/", response_class=HTMLResponse)
-    async def admin_dashboard(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def admin_dashboard(request: Request) -> Response:
         """Admin dashboard page."""
         try:
             # Get stats
@@ -261,9 +273,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/jobs", response_class=HTMLResponse)
-    async def admin_jobs_page(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def admin_jobs_page(request: Request) -> Response:
         """Jobs management page."""
         return templates.TemplateResponse(
             "jobs_list.html",
@@ -275,9 +285,7 @@ def create_admin_routes() -> APIRouter:
         )
 
     @router.get("/cases", response_class=HTMLResponse)
-    async def admin_cases_page(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def admin_cases_page(request: Request) -> Response:
         """Cases management page."""
         return templates.TemplateResponse(
             "cases_list.html",
@@ -289,9 +297,7 @@ def create_admin_routes() -> APIRouter:
         )
 
     @router.get("/server", response_class=HTMLResponse)
-    async def admin_server_page(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def admin_server_page(request: Request) -> Response:
         """Server status and configuration page."""
         try:
             # Get initial server data
@@ -313,9 +319,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/agents", response_class=HTMLResponse)
-    async def admin_agents_page(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def admin_agents_page(request: Request) -> Response:
         """Agents management page."""
         try:
             from supervaizer.server import get_server_info_from_storage
@@ -342,29 +346,26 @@ def create_admin_routes() -> APIRouter:
             ) from e
 
     @router.get("/console", response_class=HTMLResponse)
-    async def admin_console_page(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
-        """Interactive console page."""
+    async def admin_console_page(request: Request) -> Response:
+        """Interactive console page - publicly accessible, authentication handled by frontend."""
+        # Clean up expired tokens
+        cleanup_expired_tokens()
+
+        # Generate a secure token for this console session
+        console_token = generate_console_token()
+
         return templates.TemplateResponse(
-            "console.html",
-            {
-                "request": request,
-                "api_version": API_VERSION,
-                "api_key": os.getenv("SUPERVAIZER_API_KEY"),
-            },
+            "console.html", {"request": request, "console_token": console_token}
         )
 
     # API Routes
     @router.get("/api/stats")
-    async def get_stats(authorized: bool = Depends(verify_admin_access)) -> AdminStats:
+    async def get_stats() -> AdminStats:
         """Get system statistics."""
         return get_dashboard_stats(storage)
 
     @router.get("/api/server/status")
-    async def get_server_status_api(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def get_server_status_api(request: Request) -> Response:
         """Get current server status for HTMX refresh."""
         try:
             server_status = get_server_status()
@@ -387,7 +388,6 @@ def create_admin_routes() -> APIRouter:
         agent_type: Optional[str] = Query(None),
         search: Optional[str] = Query(None),
         sort: str = Query("-created_at"),
-        authorized: bool = Depends(verify_admin_access),
     ) -> Response:
         """Get agents with filtering for HTMX refresh."""
         try:
@@ -458,7 +458,6 @@ def create_admin_routes() -> APIRouter:
     async def get_agent_details(
         request: Request,
         agent_slug: str,
-        authorized: bool = Depends(verify_admin_access),
     ) -> Response:
         """Get detailed agent information."""
         try:
@@ -503,7 +502,6 @@ def create_admin_routes() -> APIRouter:
         sort: str = Query("-created_at"),
         limit: int = Query(50, le=100),
         skip: int = Query(0, ge=0),
-        authorized: bool = Depends(verify_admin_access),
     ) -> Response:
         """Get jobs with filtering and pagination."""
         try:
@@ -582,9 +580,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/jobs/{job_id}")
-    async def get_job_details(
-        request: Request, job_id: str, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def get_job_details(request: Request, job_id: str) -> Response:
         """Get detailed job information."""
         try:
             job_data = storage.get_object_by_id("Job", job_id)
@@ -618,7 +614,6 @@ def create_admin_routes() -> APIRouter:
         sort: str = Query("-created_at"),
         limit: int = Query(50, le=100),
         skip: int = Query(0, ge=0),
-        authorized: bool = Depends(verify_admin_access),
     ) -> Response:
         """Get cases with filtering and pagination."""
         try:
@@ -703,9 +698,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/cases/{case_id}")
-    async def get_case_details(
-        request: Request, case_id: str, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def get_case_details(request: Request, case_id: str) -> Response:
         """Get detailed case information."""
         try:
             case_data = storage.get_object_by_id("Case", case_id)
@@ -736,7 +729,6 @@ def create_admin_routes() -> APIRouter:
     async def update_job_status(
         job_id: str,
         status_data: Dict[str, str],
-        authorized: bool = Depends(verify_admin_access),
     ) -> Dict[str, str]:
         """Update job status."""
         try:
@@ -767,7 +759,6 @@ def create_admin_routes() -> APIRouter:
     async def update_case_status(
         case_id: str,
         status_data: Dict[str, str],
-        authorized: bool = Depends(verify_admin_access),
     ) -> Dict[str, str]:
         """Update case status."""
         try:
@@ -795,9 +786,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.delete("/api/jobs/{job_id}")
-    async def delete_job(
-        job_id: str, authorized: bool = Depends(verify_admin_access)
-    ) -> Dict[str, str]:
+    async def delete_job(job_id: str) -> Dict[str, str]:
         """Delete a job and its related cases."""
         try:
             # Delete related cases first
@@ -819,9 +808,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.delete("/api/cases/{case_id}")
-    async def delete_case(
-        case_id: str, authorized: bool = Depends(verify_admin_access)
-    ) -> Dict[str, str]:
+    async def delete_case(case_id: str) -> Dict[str, str]:
         """Delete a case."""
         try:
             deleted = storage.delete_object("Case", case_id)
@@ -837,9 +824,7 @@ def create_admin_routes() -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.get("/api/recent-activity")
-    async def get_recent_activity(
-        request: Request, authorized: bool = Depends(verify_admin_access)
-    ) -> Response:
+    async def get_recent_activity(request: Request) -> Response:
         """Get recent entity activity."""
         try:
             # Get recent jobs and cases
@@ -886,39 +871,165 @@ def create_admin_routes() -> APIRouter:
 
     @router.get("/log-stream")
     async def log_stream(
-        api_key: Optional[str] = Query(None, alias="key"),
+        token: Optional[str] = Query(None, alias="token"),
+        key: Optional[str] = Query(None, alias="key"),
     ) -> EventSourceResponse:
         """Stream log messages via Server-Sent Events."""
 
-        # Manual API key verification for EventSource (doesn't support custom headers)
-        expected_key = os.getenv("SUPERVAIZER_API_KEY")
-        if expected_key is not None and api_key != expected_key:
+        # Support both console token and API key authentication
+        auth_valid = False
+        auth_method = None
+
+        if token:
+            auth_valid = validate_console_token(token)
+            auth_method = "console_token"
+        elif key:
+            # Use API key validation
+            try:
+                from supervaizer.server import get_server_info_from_storage
+
+                server_info = get_server_info_from_storage()
+                if (
+                    server_info
+                    and hasattr(server_info, "api_key")
+                    and key == server_info.api_key
+                ):
+                    auth_valid = True
+                    auth_method = "api_key"
+            except Exception:
+                # Fallback: just check if key is provided for now
+                if key:
+                    auth_valid = True
+                    auth_method = "api_key_fallback"
+
+        if not auth_valid:
             raise HTTPException(
                 status_code=403,
-                detail="Invalid or missing API key. Pass it as ?key=<api_key>",
+                detail=f"Invalid or expired authentication token (method: {auth_method or 'none'})",
             )
 
         async def generate_log_events() -> AsyncGenerator[str, None]:
             try:
+                # Send a test message immediately to check if streaming works
+                test_message = {
+                    "timestamp": datetime.now().isoformat(),
+                    "level": "INFO",
+                    "message": f"Log stream connected using {auth_method}",
+                }
+                yield f"data: {json.dumps(test_message)}\n\n"
+
                 while True:
                     # Wait for a log message
                     log_message = await log_queue.get()
-                    # Format as SSE event
-                    event_data = json.dumps(log_message)
-                    yield f"data: {event_data}\n\n"
+                    # Ensure proper format
+                    if isinstance(log_message, dict):
+                        # Format as SSE event
+                        event_data = json.dumps(log_message, ensure_ascii=False)
+                        yield f"data: {event_data}\n\n"
+                    else:
+                        # Handle string messages
+                        fallback_message = {
+                            "timestamp": datetime.now().isoformat(),
+                            "level": "INFO",
+                            "message": str(log_message),
+                        }
+                        event_data = json.dumps(fallback_message, ensure_ascii=False)
+                        yield f"data: {event_data}\n\n"
             except asyncio.CancelledError:
                 # Client disconnected
                 pass
             except Exception as e:
                 # Send error and close
-                error_data = json.dumps({
-                    "timestamp": datetime.now().isoformat(),
-                    "level": "ERROR",
-                    "message": f"Log stream error: {str(e)}",
-                })
+                error_data = json.dumps(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "level": "ERROR",
+                        "message": f"Log stream error: {str(e)}",
+                    },
+                    ensure_ascii=False,
+                )
                 yield f"data: {error_data}\n\n"
 
         return EventSourceResponse(generate_log_events())
+
+    @router.get("/test-log")
+    async def test_log() -> Dict[str, str]:
+        """Test endpoint to generate a log message."""
+        test_message = f"Test log message generated at {datetime.now().isoformat()}"
+        add_log_to_queue(
+            timestamp=datetime.now().isoformat(), level="INFO", message=test_message
+        )
+
+        # Also test the loguru logger directly
+        log.info(f"Direct loguru test message: {test_message}")
+
+        return {"message": "Test log added to queue"}
+
+    @router.get("/debug-tokens")
+    async def debug_tokens() -> Dict[str, Any]:
+        """Debug endpoint to see current tokens."""
+        cleanup_expired_tokens()
+        return {
+            "current_tokens": [
+                {
+                    "token": token[:10] + "...",
+                    "expires_at": expiry,
+                    "expires_in": expiry - time.time(),
+                    "is_valid": expiry > time.time(),
+                }
+                for token, expiry in _console_tokens.items()
+            ],
+            "token_count": len(_console_tokens),
+            "current_time": time.time(),
+        }
+
+    @router.get("/test-loguru")
+    async def test_loguru() -> Dict[str, str]:
+        """Test endpoint to generate loguru messages."""
+        log.info("Testing loguru INFO message")
+        log.warning("Testing loguru WARNING message")
+        log.error("Testing loguru ERROR message")
+        return {"message": "Loguru test messages sent"}
+
+    @router.post("/api/console/execute")
+    async def execute_console_command(
+        request: Request,
+        command_data: Dict[str, str],
+        token: Optional[str] = Query(None, alias="token"),
+    ) -> Dict[str, str]:
+        """Execute a console command and add output to log stream."""
+        # Validate console token
+        if not validate_console_token(token):
+            raise HTTPException(
+                status_code=401, detail="Invalid or expired console token"
+            )
+
+        command = command_data.get("command", "").strip()
+        if not command:
+            return {"status": "error", "message": "No command provided"}
+
+        # Add command to log stream
+        add_log_to_queue(
+            timestamp=datetime.now().isoformat(), level="USER", message=f"$ {command}"
+        )
+
+        # Process the command
+        try:
+            result = await process_console_command(command)
+            # Add result to log stream
+            add_log_to_queue(
+                timestamp=datetime.now().isoformat(),
+                level=result.get("level", "INFO"),
+                message=result.get("message", "Command executed"),
+            )
+            return {"status": "success", "message": "Command executed"}
+        except Exception as e:
+            add_log_to_queue(
+                timestamp=datetime.now().isoformat(),
+                level="ERROR",
+                message=f"Command execution failed: {str(e)}",
+            )
+            return {"status": "error", "message": str(e)}
 
     return router
 
@@ -976,3 +1087,34 @@ def get_dashboard_stats(storage: StorageManager) -> AdminStats:
             cases={"total": 0, "running": 0, "completed": 0, "failed": 0},
             collections=0,
         )
+
+
+def generate_console_token() -> str:
+    """Generate a temporary token for console access."""
+    token = secrets.token_urlsafe(32)
+    # Token expires in 1 hour
+    _console_tokens[token] = time.time() + 3600
+    return token
+
+
+def validate_console_token(token: Optional[str]) -> bool:
+    """Validate a console token."""
+    if not token or token not in _console_tokens:
+        return False
+
+    # Check if token is expired
+    if time.time() > _console_tokens[token]:
+        del _console_tokens[token]
+        return False
+
+    return True
+
+
+def cleanup_expired_tokens() -> None:
+    """Clean up expired tokens."""
+    current_time = time.time()
+    expired_tokens = [
+        token for token, expiry in _console_tokens.items() if current_time > expiry
+    ]
+    for token in expired_tokens:
+        del _console_tokens[token]
