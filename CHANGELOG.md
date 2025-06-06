@@ -22,13 +22,13 @@ All notable changes to this project will be documented in this file.
   - Agent
   - Jobs
   - Cases
-- Improved test coverage
+- Improved test coverage : accounts, admin/routes,
 
 | Status        | Count |
 | ------------- | ----- |
 | 🤔 Skipped    | 10    |
 | ☑️ Deselected | 0     |
 | ⚠️ Failed     | 0     |
-| ✅ Passed     | 250   |
+| ✅ Passed     | 265   |
 
-Test Coverage : 79%
+Test Coverage : 81%
