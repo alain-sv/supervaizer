@@ -28,7 +28,7 @@ from supervaizer.event import (
 )
 from supervaizer.job import Job, JobContext, JobInstructions, JobResponse, Jobs
 from supervaizer.lifecycle import EntityEvents, EntityLifecycle, EntityStatus
-from supervaizer.parameter import Parameter, Parameters, ParametersSetup
+from supervaizer.parameter import Parameter, ParametersSetup
 from supervaizer.server import Server
 from supervaizer.server_utils import ErrorResponse, ErrorType, create_error_response
 from supervaizer.telemetry import (
@@ -76,7 +76,6 @@ __all__ = [
     "CaseUpdateEvent",
     "ServerRegisterEvent",
     "Parameter",
-    "Parameters",
     "ParametersSetup",
     "ErrorResponse",
     "ErrorType",

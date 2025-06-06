@@ -272,7 +272,7 @@ class AbstractAgent(SvBaseModel):
     version: str
     description: str
     tags: list[str] | None = None
-    methods: AgentMethods
+    methods: AgentMethods | None = None
     parameters_setup: ParametersSetup | None = None
     server_agent_id: str | None = None
     server_agent_status: str | None = None
@@ -381,7 +381,7 @@ class Agent(AbstractAgent):
             "api_path": self.path,
             "slug": self.slug,
             "tags": self.tags,
-            "methods": self.methods.registration_info,
+            "methods": self.methods.registration_info if self.methods else {},
             "parameters_setup": self.parameters_setup.registration_info
             if self.parameters_setup
             else None,
