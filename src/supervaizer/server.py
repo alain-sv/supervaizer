@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, TypeVar
 from urllib.parse import urlunparse
 
+import webbrowser
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -298,33 +299,42 @@ class Server(AbstractServer):
 
         # Create routes
         if self.supervisor_account:
-            log.info("[Server launch] Deploy the supervision routes")
+            log.info("[Server launch] 🚀 Deploy Supervaizer routes")
             self.app.include_router(create_default_routes(self))
             self.app.include_router(create_utils_routes(self))
             self.app.include_router(create_agents_routes(self))
         if self.a2a_endpoints:
-            log.info("[Server launch] Deploy A2A routes")
+            log.info("[Server launch] 📢 Deploy A2A routes")
             self.app.include_router(create_a2a_routes(self))
         if self.acp_endpoints:
-            log.info("[Server launch] Deploy ACP routes")
+            log.info("[Server launch] 📢 Deploy ACP routes")
             self.app.include_router(create_acp_routes(self))
 
         # Deploy admin routes if API key is available
         if self.api_key and admin_interface:
-            log.info("[Server launch] Deploy Admin interface")
+            log.info(
+                f"[Server launch] 💼 Deploy Admin interface @ {self.public_url}/admin"
+            )
             self.app.include_router(create_admin_routes(), prefix="/admin")
+            # Try to open admin interface in browser
+            try:
+                admin_url = f"{self.public_url}/admin"
+                webbrowser.open(admin_url)
+                log.debug(
+                    f"[Server launch] 🌐 Opening admin interface in browser: {admin_url}"
+                )
+            except Exception as e:
+                log.debug(f"[Server launch] Could not open browser: {e}")
 
             # Save server info to storage for admin interface
             save_server_info_to_storage(self)
 
         # Load running entities from storage into memory
-        log.info("[Server launch] Loading running entities from storage...")
         try:
             load_running_entities_on_startup()
         except Exception as e:
             log.error(f"[Server launch] Failed to load running entities: {e}")
-            # Don't fail server startup if entity loading fails
-            pass
+            raise
 
         # Override the get_server dependency to return this instance
         async def get_current_server() -> "Server":
@@ -409,12 +419,12 @@ class Server(AbstractServer):
         }
 
     def launch(self, log_level: Optional[str] = "INFO") -> None:
-        log.remove()
         if log_level:
+            log.remove()
             log.add(
                 sys.stderr,
                 colorize=True,
-                format="<green>{time}</green>|<level> {level}</level> | <level>{message}</level>",
+                format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>|<level> {level}</level> | <level>{message}</level>",
                 level=log_level,
             )
 

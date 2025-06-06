@@ -46,7 +46,7 @@ class StorageManager:
         Args:
             db_path: Path to the TinyDB JSON file
         """
-        self.db_path = Path(db_path)
+        self.db_path: Path = Path(db_path)
         self._lock = threading.Lock()
 
         # Ensure data directory exists
@@ -60,7 +60,9 @@ class StorageManager:
             indent=2,
         )
 
-        log.info(f"[StorageManager] DB initialized at {db_path}")
+        log.info(
+            f"[StorageManager] 🗃️ Local DB initialized at {self.db_path.absolute()}"
+        )
 
     def save_object(self, type: str, obj: Dict[str, Any]) -> None:
         """
@@ -81,7 +83,7 @@ class StorageManager:
             query = Query()
             table.upsert(obj, query.id == obj_id)
 
-            log.debug(f"Saved object with ID: {type} {obj_id} - {obj}")
+            # log.debug(f"Saved object with ID: {type} {obj_id} - {obj}")
 
     def get_objects(self, type: str) -> List[Dict[str, Any]]:
         """
@@ -382,32 +384,25 @@ def load_running_entities_on_startup() -> None:
     Jobs().reset()
     Cases().reset()
 
-    # Define running statuses
-    running_statuses = [
-        EntityStatus.IN_PROGRESS,
-        EntityStatus.CANCELLING,
-        EntityStatus.AWAITING,
-    ]
-
     # Load running jobs
     job_data_list = storage.get_objects("Job")
     loaded_jobs = 0
 
     for job_data in job_data_list:
         job_status = job_data.get("status")
-        if job_status in [status.value for status in running_statuses]:
+        if job_status in [status.value for status in EntityStatus.status_running()]:
             try:
                 # Use model_construct to avoid triggering __init__ side effects
                 job = Job.model_construct(**job_data)
                 # Manually add to registry since we bypassed __init__
                 Jobs().add_job(job)
                 loaded_jobs += 1
-                log.debug(
-                    f"[Startup] Loaded running job: {job.id} (status: {job.status})"
-                )
+                # log.debug(
+                #     f"[Startup] Loaded running job: {job.id} (status: {job.status})"
+                # )
             except Exception as e:
                 log.error(
-                    f"[Startup] Failed to load job {job_data.get('id', 'unknown')}: {e}"
+                    f"[Storage] §SSL01 Failed to load job {job_data.get('id', 'unknown')}: {e}"
                 )
 
     # Load running cases
@@ -416,21 +411,21 @@ def load_running_entities_on_startup() -> None:
 
     for case_data in case_data_list:
         case_status = case_data.get("status")
-        if case_status in [status.value for status in running_statuses]:
+        if case_status in [status.value for status in EntityStatus.status_running()]:
             try:
                 # Use model_construct to avoid triggering __init__ side effects
                 case = Case.model_construct(**case_data)
                 # Manually add to registry since we bypassed __init__
                 Cases().add_case(case)
                 loaded_cases += 1
-                log.debug(
-                    f"[Startup] Loaded running case: {case.id} (status: {case.status}, job: {case.job_id})"
-                )
+                # log.debug(
+                #    f"[Storage] Loaded running case: {case.id} (status: {case.status}, job: {case.job_id})"
+                # )
             except Exception as e:
                 log.error(
-                    f"[Startup] Failed to load case {case_data.get('id', 'unknown')}: {e}"
+                    f"[Storage] §SSL03 Failed to load case {case_data.get('id', 'unknown')}: {e}"
                 )
 
     log.info(
-        f"[Startup] Entity loading complete: {loaded_jobs} running jobs, {loaded_cases} running cases"
+        f"[Storage] Entity re-loading complete: {loaded_jobs} running jobs, {loaded_cases} running cases"
     )

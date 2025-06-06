@@ -26,9 +26,9 @@ class EntityStatus(str, Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-    @property
-    def is_stopped(self) -> bool:
-        return self in [
+    @staticmethod
+    def status_stopped() -> list["EntityStatus"]:
+        return [
             EntityStatus.STOPPED,
             EntityStatus.CANCELLED,
             EntityStatus.FAILED,
@@ -36,30 +36,37 @@ class EntityStatus(str, Enum):
         ]
 
     @property
-    def is_running(self) -> bool:
-        return self in [
+    def is_stopped(self) -> bool:
+        return self in EntityStatus.status_stopped()
+
+    @staticmethod
+    def status_running() -> list["EntityStatus"]:
+        return [
             EntityStatus.IN_PROGRESS,
             EntityStatus.CANCELLING,
             EntityStatus.AWAITING,
         ]
 
     @property
-    def is_anomaly(self) -> bool:
-        return self in [
+    def is_running(self) -> bool:
+        return self in EntityStatus.status_running()
+
+    @staticmethod
+    def status_anomaly() -> list["EntityStatus"]:
+        return [
             EntityStatus.CANCELLING,
             EntityStatus.CANCELLED,
             EntityStatus.FAILED,
         ]
 
     @property
+    def is_anomaly(self) -> bool:
+        return self in EntityStatus.status_anomaly()
+
+    @property
     def label(self) -> str:
         """Get the display label for the enum value."""
         return self.name.replace("_", " ").title()
-
-
-# Type aliases for EntityStatus and EntityStatus to maintain backward compatibility
-EntityStatus = EntityStatus
-EntityStatus = EntityStatus
 
 
 class EntityEvents(str, Enum):

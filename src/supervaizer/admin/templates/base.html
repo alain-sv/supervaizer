@@ -128,13 +128,21 @@
 
         // Live Console - Server-Sent Events
         function initializeLogStream() {
+            console.log('initializeLogStream called, pathname:', window.location.pathname);
+            
             // Skip if we're on the dedicated console page to avoid conflicts
             if (window.location.pathname.includes('/console')) {
+                console.log('Skipping live console on console page');
                 return;
             }
             
             const consoleComponent = document.querySelector('#live-console');
-            if (!consoleComponent) return;
+            if (!consoleComponent) {
+                console.error('Live console component not found');
+                return;
+            }
+            
+            console.log('Initializing live console log stream');
 
             let eventSource = null;
             let logCounter = 0;
@@ -151,7 +159,14 @@
                 eventSource.onmessage = function(event) {
                     try {
                         console.log('Received log message:', event.data);
-                        const logData = JSON.parse(event.data);
+                        // Handle different event data formats
+                        let logData;
+                        if (event.data.startsWith('data: ')) {
+                            // Remove "data: " prefix if present
+                            logData = JSON.parse(event.data.substring(6));
+                        } else {
+                            logData = JSON.parse(event.data);
+                        }
                         const logEntry = {
                             id: ++logCounter,
                             time: new Date(logData.timestamp).toLocaleTimeString(),

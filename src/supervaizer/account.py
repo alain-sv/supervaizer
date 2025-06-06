@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Union
 import httpx
 
 from supervaizer.__version__ import VERSION
-from supervaizer.common import ApiError, ApiResult, ApiSuccess, SvBaseModel, log
+from supervaizer.common import ApiError, ApiResult, ApiSuccess, SvBaseModel
 from supervaizer.telemetry import Telemetry
 
 if TYPE_CHECKING:
@@ -122,7 +122,6 @@ class Account(AccountModel):
         from supervaizer.event import ServerRegisterEvent
 
         event = ServerRegisterEvent(server=server, account=self)
-        log.debug(f"[Account register server]: payload keys {event.payload.keys()}")
         return self.send_event(sender=server, event=event)
 
     def _create_api_result(
