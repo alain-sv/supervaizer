@@ -13,7 +13,6 @@ from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, TypeVar
 from urllib.parse import urlunparse
 
-import webbrowser
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -316,15 +315,6 @@ class Server(AbstractServer):
                 f"[Server launch] 💼 Deploy Admin interface @ {self.public_url}/admin"
             )
             self.app.include_router(create_admin_routes(), prefix="/admin")
-            # Try to open admin interface in browser
-            try:
-                admin_url = f"{self.public_url}/admin"
-                webbrowser.open(admin_url)
-                log.debug(
-                    f"[Server launch] 🌐 Opening admin interface in browser: {admin_url}"
-                )
-            except Exception as e:
-                log.debug(f"[Server launch] Could not open browser: {e}")
 
             # Save server info to storage for admin interface
             save_server_info_to_storage(self)

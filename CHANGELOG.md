@@ -17,4 +17,16 @@ All notable changes to this project will be documented in this file.
 - admin UI with fastAdmin
 - Dynamic content on:
   - Server page
-  -
+  - Agent
+  - Jobs
+  - Cases
+-
+
+| Status        | Count |
+| ------------- | ----- |
+| 🤔 Skipped    | 10    |
+| ☑️ Deselected | 0     |
+| ⚠️ Failed     | 0     |
+| ✅ Passed     | 192   |
+
+Test Coverage : 70%
