@@ -116,11 +116,13 @@ def agent_method_fixture() -> Annotated[AgentMethod, "fixture"]:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def context_fixture() -> Annotated[JobContext, "fixture"]:
+    # Generate unique IDs for each test run
+    unique_id = str(uuid4())[:8]
     return JobContext(
         workspace_id="test-workspace",
-        job_id="test-job-id",
+        job_id=f"test-job-{unique_id}",
         started_by="test-user",
         started_at=datetime.now(),
         mission_id="test-mission",
@@ -129,12 +131,12 @@ def context_fixture() -> Annotated[JobContext, "fixture"]:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def job_fixture(context_fixture: JobContext) -> Annotated[Job, "fixture"]:
     return Job.new(
         job_context=context_fixture,
         agent_name="test-agent",
-        name="test-job-id",
+        name=context_fixture.job_id,
     )
 
 

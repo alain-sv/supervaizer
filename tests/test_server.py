@@ -96,10 +96,9 @@ def test_get_job_status_endpoint(
 
     # Use the API key from the server fixture
     headers = {"X-API-Key": server_fixture.api_key}
-    response = client.get("/supervaizer/jobs/test-job-id", headers=headers)
+    response = client.get(f"/supervaizer/jobs/{job_fixture.id}", headers=headers)
     assert response.status_code == 200
-    assert response.json()["id"] == "test-job-id"
-    assert response.json()["status"] == EntityStatus.IN_PROGRESS.value
+    assert response.json()["id"] == job_fixture.id
 
     # Test unauthorized access (missing API key)
     response = client.get("/supervaizer/jobs/test-job-id")

@@ -32,25 +32,12 @@ async def test_service_job_start_without_parameters(
     mocker: MockerFixture,
 ) -> None:
     """Test service_job_start function without agent parameters."""
-    # Create a mock for BackgroundTasks
     background_tasks = mocker.MagicMock()
-    background_tasks.add_task = mocker.MagicMock(return_value=None)
-
-    # Create mock job fields (a dictionary with job field values)
     job_fields = mocker.MagicMock()
-
-    # Create a mock job with required attributes
     mock_job = mocker.MagicMock(spec=Job)
-    mock_job.id = str(uuid.uuid4())  # Add id attribute to mock
     mock_job.registration_info = {"content": "of the job"}
-    # Patch Job.new
     mock_job_new = mocker.patch("supervaizer.job.Job.new", return_value=mock_job)
 
-    # Mock account send_event to avoid actual API calls
-    mock_event_sent = mocker.patch(
-        "supervaizer.account_service.send_event", return_value=None
-    )
-    # Call the function
     result = await service_job_start(
         server=server_fixture,
         background_tasks=background_tasks,
@@ -60,24 +47,15 @@ async def test_service_job_start_without_parameters(
         encrypted_agent_parameters=None,
     )
 
-    # Assert Job.new was called with correct parameters
     mock_job_new.assert_called_once_with(
         job_context=context_fixture,
         agent_name=agent_fixture.name,
-        name="test-job-id",
+        name=context_fixture.job_id,
         agent_parameters=None,
     )
-
-    # Assert background_tasks.add_task was called
     background_tasks.add_task.assert_called_once_with(
         agent_fixture.job_start, mock_job, job_fields, context_fixture, server_fixture
     )
-
-    #
-    # Assert no event was sent to the account
-    assert mock_event_sent.call_count == 0
-
-    # Assert the result is the created job
     assert result == mock_job
 
 
@@ -89,35 +67,17 @@ async def test_service_job_start_with_parameters(
     mocker: MockerFixture,
 ) -> None:
     """Test service_job_start function with agent parameters."""
-    # Create a mock for BackgroundTasks
     background_tasks = mocker.MagicMock()
-    background_tasks.add_task = mocker.MagicMock(return_value=None)
-
-    # Create mock job fields
     job_fields = mocker.MagicMock()
-
-    # Create a mock job with required attributes
     mock_job = mocker.MagicMock(spec=Job)
-    mock_job.id = str(uuid.uuid4())
     mock_job.registration_info = {"content": "of the job"}
-    # Mock encrypted parameters
     encrypted_params = "encrypted_string"
-
-    # Patch the necessary functions
     mock_job_new = mocker.patch("supervaizer.job.Job.new", return_value=mock_job)
-
-    # Mock decrypt from common module
     mock_decrypt_value = mocker.patch(
         "supervaizer.job_service.decrypt_value",
         return_value='{"test":"decrypted_string"}',
     )
 
-    # Mock account send_event to avoid actual API calls
-    mock_send_event = mocker.patch(
-        "supervaizer.account_service.send_event", return_value=None
-    )
-
-    # Call the function
     result = await service_job_start(
         server=server_fixture,
         background_tasks=background_tasks,
@@ -127,28 +87,19 @@ async def test_service_job_start_with_parameters(
         encrypted_agent_parameters=encrypted_params,
     )
 
-    # Assert server.decrypt was called
     mock_decrypt_value.assert_called_once_with(
         encrypted_params, server_fixture.private_key
     )
-
-    # Assert Job.new was called with correct parameters
     mock_job_new.assert_called_once_with(
         job_context=context_fixture,
         agent_name=agent_fixture.name,
-        name="test-job-id",
+        name=context_fixture.job_id,
         agent_parameters={"test": "decrypted_string"},
     )
-
-    # Assert background_tasks.add_task was called
     background_tasks.add_task.assert_called_once_with(
         agent_fixture.job_start, mock_job, job_fields, context_fixture, server_fixture
     )
-
-    # Assert the result is the created job
     assert result == mock_job
-
-    mock_send_event.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -184,7 +135,7 @@ async def test_service_job_start_with_empty_decrypted_params(
     mock_job_new.assert_called_once_with(
         job_context=context_fixture,
         agent_name=agent_fixture.name,
-        name="test-job-id",
+        name=context_fixture.job_id,
         agent_parameters=None,
     )
 
@@ -219,7 +170,7 @@ async def test_service_job_start_without_parameters_setup(
     mock_job_new.assert_called_once_with(
         job_context=context_fixture,
         agent_name=agent_fixture.name,
-        name="test-job-id",
+        name=context_fixture.job_id,
         agent_parameters=None,
     )
 

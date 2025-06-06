@@ -13,20 +13,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- data persistence with tinyDB
-- admin UI with fastAdmin
+### Added
+
+- Data persistence with tinyDB
+- Admin UI with fastAdmin
 - Dynamic content on:
   - Server page
   - Agent
   - Jobs
   - Cases
--
+- Improved test coverage
 
 | Status        | Count |
 | ------------- | ----- |
 | 🤔 Skipped    | 10    |
 | ☑️ Deselected | 0     |
 | ⚠️ Failed     | 0     |
-| ✅ Passed     | 192   |
+| ✅ Passed     | 235   |
 
-Test Coverage : 70%
+Test Coverage : 75%
