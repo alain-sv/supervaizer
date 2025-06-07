@@ -129,11 +129,11 @@ def create_default_routes(server: "Server") -> APIRouter:
 
     @router.get(
         "/jobs/{job_id}",
-        response_model=Job,
+        response_model=JobResponse,
         dependencies=[Security(server.verify_api_key)],
     )
     @handle_route_errors()
-    async def get_job_status(job_id: str) -> Job:
+    async def get_job_status(job_id: str) -> JobResponse:
         """Get the status of a job by its ID"""
         job = Jobs().get_job(job_id, include_persisted=True)
         if not job:
@@ -141,7 +141,12 @@ def create_default_routes(server: "Server") -> APIRouter:
                 status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"Job with ID {job_id} not found §SRCG01",
             )
-        return job
+        return JobResponse(
+            job_id=job.id,
+            status=job.status,
+            message=f"Job {job.id} status: {job.status.value}",
+            payload=job.payload,
+        )
 
     @router.get(
         "/jobs",
@@ -468,7 +473,7 @@ def create_agent_route(server: "Server", agent: Agent) -> APIRouter:
         "/jobs/{job_id}",
         summary=f"Get job status for agent: {agent.name}",
         description="Get the status and details of a specific job",
-        response_model=Job,
+        response_model=JobResponse,
         responses={
             http_status.HTTP_200_OK: {"model": Job},
             http_status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
@@ -477,7 +482,9 @@ def create_agent_route(server: "Server", agent: Agent) -> APIRouter:
         dependencies=[Security(server.verify_api_key)],
     )
     @handle_route_errors()
-    async def get_job_status(job_id: str, agent: Agent = Depends(get_agent)) -> Job:
+    async def get_job_status(
+        job_id: str, agent: Agent = Depends(get_agent)
+    ) -> JobResponse:
         """Get the status of a job by its ID for this specific agent"""
         log.info(f"📥  GET /jobs/{job_id} [Get job status] {agent.name}")
         job = Jobs().get_job(job_id, agent_name=agent.name, include_persisted=True)
@@ -486,7 +493,12 @@ def create_agent_route(server: "Server", agent: Agent) -> APIRouter:
                 status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"Job with ID {job_id} not found for agent {agent.name}",
             )
-        return job
+        return JobResponse(
+            job_id=job.id,
+            status=job.status,
+            message=f"Job {job.id} status: {job.status.value}",
+            payload=job.payload,
+        )
 
     @router.post(
         "/stop",

@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
   - Cases
 - Improved test coverage : accounts, admin/routes,
 - Add persisted data to job status check.
+- Paramter.to_dict : override to avoid storing secrets.
 
 | Status        | Count |
 | ------------- | ----- |

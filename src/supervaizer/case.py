@@ -184,7 +184,12 @@ class Case(CaseAbstractModel):
     def update(self, updateCaseNode: CaseNodeUpdate, **kwargs: Any) -> None:
         updateCaseNode.index = len(self.updates) + 1
         if updateCaseNode.error:
-            PersistentEntityLifecycle.handle_event(self, EntityEvents.ERROR_ENCOUNTERED)
+            success, error = PersistentEntityLifecycle.handle_event(
+                self, EntityEvents.ERROR_ENCOUNTERED
+            )
+            log.warning(
+                f"[Case update] CaseRef {self.case_ref} has error {updateCaseNode.error}"
+            )
             assert self.status == EntityStatus.FAILED  # Just to be sure
         self.account.send_update_case(self, updateCaseNode)
         self.updates.append(updateCaseNode)
@@ -316,8 +321,16 @@ class Case(CaseAbstractModel):
 
         PersistentEntityLifecycle.handle_event(case, EntityEvents.START_WORK)
 
-        # Send case startvent to Supervaize SaaS.
-        account.send_start_case(case=case)
+        # Send case start event to Supervaize SaaS.
+        result = account.send_start_case(case=case)
+        if result:
+            log.debug(
+                f"[Case start] Case {case.id} send to Supervaize with result {result}"
+            )
+        else:
+            log.error(
+                f"[Case start] §SCCS01 Case {case.id} failed to send to Supervaize"
+            )
 
         return case
 

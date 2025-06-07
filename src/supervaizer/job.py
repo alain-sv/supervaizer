@@ -51,7 +51,7 @@ class Jobs:
 
         # Check if job already exists for this agent
         if job.id in self.jobs_by_agent[agent_name]:
-            raise ValueError(f"Job ID '{job.id}' already exists for agent {agent_name}")
+            log.warning(f"Job ID '{job.id}' already exists for agent {agent_name}.")
 
         self.jobs_by_agent[agent_name][job.id] = job
 
@@ -71,20 +71,22 @@ class Jobs:
         Returns:
             Job | None: The job if found, None otherwise
         """
-        if include_persisted:
-            job_from_storage = storage_manager.get_object_by_id("Job", job_id)
-            if job_from_storage:
-                return Job(**job_from_storage)
+        found_job = None
 
         if agent_name:
             # Search in specific agent's jobs
-            return self.jobs_by_agent.get(agent_name, {}).get(job_id)
+            found_job = self.jobs_by_agent.get(agent_name, {}).get(job_id)
 
         # Search across all agents
         for agent_jobs in self.jobs_by_agent.values():
             if job_id in agent_jobs:
-                return agent_jobs[job_id]
-        return None
+                found_job = agent_jobs[job_id]
+
+        if include_persisted:
+            job_from_storage = storage_manager.get_object_by_id("Job", job_id)
+            if job_from_storage:
+                found_job = Job(**job_from_storage)
+        return found_job
 
     def get_agent_jobs(self, agent_name: str) -> dict[str, "Job"]:
         """Get all jobs for a specific agent
@@ -192,6 +194,9 @@ class JobResponse(SvBaseModel):
         error: Optional[Exception] = None,
         **kwargs: Any,
     ) -> None:
+        log.debug(
+            f"[JobResponse __init__] job_id={job_id}, status={status}, message={message}, payload={payload}, error={error}, kwargs={kwargs}"
+        )
         if error:
             error_message = str(error)
             error_traceback = traceback.format_exc()
@@ -203,7 +208,6 @@ class JobResponse(SvBaseModel):
         kwargs["payload"] = payload
         kwargs["error_message"] = error_message
         kwargs["error_traceback"] = error_traceback
-        log.debug(f"------[Job Response] {kwargs}")
         super().__init__(**kwargs)
 
         if error:
@@ -302,7 +306,7 @@ class Job(AbstractJob):
         """
         if case_id not in self.case_ids:
             self.case_ids.append(case_id)
-            log.debug(f"Added case {case_id} to job {self.id}")
+            log.debug(f"[Job add_response] Added case {case_id} to job {self.id}")
             # Persist updated job to storage
             storage_manager.save_object("Job", self.to_dict)
 

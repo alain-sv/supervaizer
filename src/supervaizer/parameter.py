@@ -23,6 +23,16 @@ class ParameterModel(SvBaseModel):
 
 class Parameter(ParameterModel):
     @property
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Override the to_dict method to handle the value field.
+        """
+        data = self.model_dump(mode="json")
+        if self.is_secret:
+            data["value"] = "********"
+        return data
+
+    @property
     def registration_info(self) -> Dict[str, Any]:
         return {
             "name": self.name,
@@ -58,10 +68,9 @@ class ParametersSetup(SvBaseModel):
                 Parameter(**parameter)  # type: ignore # just checked that instance is dict
                 for parameter in parameter_list
             ]
+            parameter_list = parameter_list_casted  # type: ignore
         return cls(
-            definitions={
-                parameter.name: parameter for parameter in parameter_list_casted
-            }
+            definitions={parameter.name: parameter for parameter in parameter_list}  # type: ignore
         )
 
     def value(self, name: str) -> str | None:

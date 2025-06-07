@@ -77,7 +77,9 @@ class StorageManager:
             obj_id = obj.get("id")
 
             if not obj_id:
-                raise ValueError(f"Object must have an 'id' field: {obj}")
+                raise ValueError(
+                    f"[StorageManager] §SSSS01 Object must have an 'id' field: {obj}"
+                )
 
             # Use upsert to handle both new and existing objects
             query = Query()
@@ -310,7 +312,7 @@ class PersistentEntityLifecycle:
             entity_dict = entity.to_dict if hasattr(entity, "to_dict") else vars(entity)
             storage_mgr.save_object(type(entity).__name__, entity_dict)
             log.debug(
-                f"Auto-persisted {type(entity).__name__} {entity.id} after transition to {to_status}"
+                f"[Storage transition] Auto-persisted {type(entity).__name__} {entity.id} after transition to {to_status}"
             )
 
         return success, error
@@ -342,7 +344,7 @@ class PersistentEntityLifecycle:
             entity_dict = entity.to_dict if hasattr(entity, "to_dict") else vars(entity)
             storage_mgr.save_object(type(entity).__name__, entity_dict)
             log.debug(
-                f"Auto-persisted {type(entity).__name__} {entity.id} after handling event {event}"
+                f"[Storage handle_event] Auto-persisted {type(entity).__name__} {entity.id} after handling event {event}"
             )
 
         return success, error
