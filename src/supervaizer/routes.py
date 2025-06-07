@@ -135,7 +135,7 @@ def create_default_routes(server: "Server") -> APIRouter:
     @handle_route_errors()
     async def get_job_status(job_id: str) -> Job:
         """Get the status of a job by its ID"""
-        job = Jobs().get_job(job_id)
+        job = Jobs().get_job(job_id, include_persisted=True)
         if not job:
             raise HTTPException(
                 status_code=http_status.HTTP_404_NOT_FOUND,
@@ -480,7 +480,7 @@ def create_agent_route(server: "Server", agent: Agent) -> APIRouter:
     async def get_job_status(job_id: str, agent: Agent = Depends(get_agent)) -> Job:
         """Get the status of a job by its ID for this specific agent"""
         log.info(f"📥  GET /jobs/{job_id} [Get job status] {agent.name}")
-        job = Jobs().get_job(job_id, agent_name=agent.name)
+        job = Jobs().get_job(job_id, agent_name=agent.name, include_persisted=True)
         if not job:
             raise HTTPException(
                 status_code=http_status.HTTP_404_NOT_FOUND,
@@ -500,11 +500,11 @@ def create_agent_route(server: "Server", agent: Agent) -> APIRouter:
     @handle_route_errors()
     async def stop_agent(
         background_tasks: BackgroundTasks,
-        params=Body(...),
+        params: dict[str, Any] = Body(...),
         agent: Agent = Depends(get_agent),
     ) -> AgentResponse:
         log.info(f"📥  POST /stop [Stop agent] {agent.name} with params {params}")
-        result = agent.job_stop(params.get("job_context"))
+        result = agent.job_stop(params.get("job_context", {}))
         res_info = result.registration_info if result else {}
         return AgentResponse(
             name=agent.name,

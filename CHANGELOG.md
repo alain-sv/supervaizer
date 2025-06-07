@@ -23,12 +23,13 @@ All notable changes to this project will be documented in this file.
   - Jobs
   - Cases
 - Improved test coverage : accounts, admin/routes,
+- Add persisted data to job status check.
 
 | Status        | Count |
 | ------------- | ----- |
-| 🤔 Skipped    | 10    |
+| 🤔 Skipped    | 6     |
 | ☑️ Deselected | 0     |
 | ⚠️ Failed     | 0     |
-| ✅ Passed     | 265   |
+| ✅ Passed     | 270   |
 
 Test Coverage : 81%

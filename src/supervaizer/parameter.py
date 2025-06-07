@@ -49,13 +49,19 @@ class ParametersSetup(SvBaseModel):
     @classmethod
     def from_list(
         cls, parameter_list: List[Parameter | Dict[str, Any]] | None
-    ) -> "ParametersSetup":
+    ) -> "ParametersSetup | None":
         if not parameter_list:
-            return
+            return None
+
         if isinstance(parameter_list[0], dict):  # TODO: add test for this
-            parameter_list = [Parameter(**parameter) for parameter in parameter_list]
+            parameter_list_casted = [
+                Parameter(**parameter)  # type: ignore # just checked that instance is dict
+                for parameter in parameter_list
+            ]
         return cls(
-            definitions={parameter.name: parameter for parameter in parameter_list}
+            definitions={
+                parameter.name: parameter for parameter in parameter_list_casted
+            }
         )
 
     def value(self, name: str) -> str | None:

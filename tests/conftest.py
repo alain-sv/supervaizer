@@ -30,7 +30,6 @@ from supervaizer import (
     Job,
     JobContext,
     Parameter,
-    Parameters,
     ParametersSetup,
     Server,
     Telemetry,
@@ -278,5 +277,10 @@ def server_fixture(
 @pytest.fixture
 def parameters_fixture(
     parameters_setup_fixture: ParametersSetup,
-) -> Annotated[Parameters, "fixture"]:
-    return Parameters(values={"parameter1": "value1", "parameter2": "value2"})
+) -> Annotated[ParametersSetup, "fixture"]:
+    return ParametersSetup.from_list(
+        parameter_list=[
+            Parameter(name="parameter1", value="value1", is_environment=True),
+            Parameter(name="parameter2", value="value2", description="desc2"),
+        ]
+    )

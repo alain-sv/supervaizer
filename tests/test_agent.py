@@ -4,11 +4,11 @@
 # If a copy of the MPL was not distributed with this file, you can obtain one at
 # https://mozilla.org/MPL/2.0/.
 
-
 import json
 import os
 from datetime import datetime
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -337,12 +337,10 @@ def test_agent_update_agent_from_server(
     monkeypatch.setattr(
         server_fixture.__class__,
         "decrypt",
-        lambda self, encrypted_parameters: json.dumps(
-            [
-                {"name": "parameter1", "value": "new_value1", "is_environment": True},
-                {"name": "parameter2", "value": "new_value2", "is_environment": False},
-            ]
-        ),
+        lambda self, encrypted_parameters: json.dumps([
+            {"name": "parameter1", "value": "new_value1", "is_environment": True},
+            {"name": "parameter2", "value": "new_value2", "is_environment": False},
+        ]),
     )
     # Ensure supervisor_account is not None
     assert server_fixture.supervisor_account is not None
@@ -377,9 +375,9 @@ def test_agent_update_agent_from_server(
     monkeypatch.setattr(
         server_fixture.__class__,
         "decrypt",
-        lambda self, encrypted_parameters: json.dumps(
-            [{"invalid_parameter": "invalid_value1"}]
-        ),
+        lambda self, encrypted_parameters: json.dumps([
+            {"invalid_parameter": "invalid_value1"}
+        ]),
     )
     with pytest.raises(ValueError):
         agent_fixture.update_agent_from_server(server_fixture)
@@ -388,9 +386,10 @@ def test_agent_update_agent_from_server(
 def test_agent_job_context(agent_fixture: Agent) -> None:
     """Test agent job context"""
     # Create a job context
+    job_id = f"test-job-{str(uuid4())[:8]}"
     context = JobContext(
         workspace_id="test-workspace-id",
-        job_id="test-job-id",
+        job_id=job_id,
         started_by="test-started-by",
         started_at=datetime.now(),
         mission_id="test-mission-id",
@@ -398,9 +397,6 @@ def test_agent_job_context(agent_fixture: Agent) -> None:
         mission_context=None,
         job_instructions=None,
     )
-
-    # Test with valid fields
-    job_fields = {"full_name": "John Doe", "age": 30}
 
     # Create job with context
     job = Job.new(
@@ -410,7 +406,7 @@ def test_agent_job_context(agent_fixture: Agent) -> None:
     )
 
     # Test job fields
-    assert job.job_context.job_id == "test-job-id"
+    assert job.job_context.job_id == job_id
     assert job.job_context.started_by == "test-started-by"
     assert job.job_context.workspace_id == "test-workspace-id"
     assert job.job_context.mission_id == "test-mission-id"
@@ -539,3 +535,52 @@ def test_custom_method_key_validation_empty_dict() -> None:
         custom={},
     )
     assert methods.custom == {}
+
+
+def test_agent_method_fields_definitions() -> None:
+    from supervaizer.agent import AgentMethod, AgentMethodField
+
+    fields = [
+        AgentMethodField(
+            name="color",
+            type=list[str],
+            field_type="MultipleChoiceField",
+            choices=[["B", "Blue"], ["R", "Red"], ["G", "Green"]],
+            widget="RadioSelect",
+            required=True,
+            description="Pick a color",
+        ),
+        AgentMethodField(
+            name="age",
+            type=int,
+            field_type="IntegerField",
+            widget="NumberInput",
+            required=False,
+            default=18,
+            description="Enter your age",
+        ),
+    ]
+    agent_method = AgentMethod(
+        name="test",
+        method="test.method",
+        fields=fields,
+    )
+    defs = agent_method.fields_definitions
+    assert isinstance(defs, list)
+    assert len(defs) == 2
+    for d in defs:
+        assert isinstance(d, dict)
+    assert defs[0]["name"] == "color"
+    assert defs[0]["field_type"] == "MultipleChoiceField"
+    assert defs[0]["choices"] == [["B", "Blue"], ["R", "Red"], ["G", "Green"]]
+    assert defs[0]["widget"] == "RadioSelect"
+    assert defs[0]["required"] is True
+    assert defs[0]["description"] == "Pick a color"
+    assert defs[0]["type"] == "list"
+    assert defs[1]["name"] == "age"
+    assert defs[1]["field_type"] == "IntegerField"
+    assert defs[1]["widget"] == "NumberInput"
+    assert defs[1]["required"] is False
+    assert defs[1]["default"] == 18
+    assert defs[1]["description"] == "Enter your age"
+    assert defs[1]["type"] == "int"

@@ -429,3 +429,6 @@ def load_running_entities_on_startup() -> None:
     log.info(
         f"[Storage] Entity re-loading complete: {loaded_jobs} running jobs, {loaded_cases} running cases"
     )
+
+
+storage_manager = StorageManager()

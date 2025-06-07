@@ -17,6 +17,7 @@ from supervaizer.lifecycle import (
     EntityStatus,
     Lifecycle,
 )
+from supervaizer.storage import storage_manager
 
 if TYPE_CHECKING:
     pass
@@ -54,16 +55,27 @@ class Jobs:
 
         self.jobs_by_agent[agent_name][job.id] = job
 
-    def get_job(self, job_id: str, agent_name: str | None = None) -> "Job | None":
+    def get_job(
+        self,
+        job_id: str,
+        agent_name: str | None = None,
+        include_persisted: bool = False,
+    ) -> "Job | None":
         """Get a job by its ID and optionally agent name
 
         Args:
             job_id (str): The ID of the job to get
             agent_name (str | None): The name of the agent. If None, searches all agents.
+            include_persisted (bool): Whether to include persisted jobs. Defaults to False.
 
         Returns:
             Job | None: The job if found, None otherwise
         """
+        if include_persisted:
+            job_from_storage = storage_manager.get_object_by_id("Job", job_id)
+            if job_from_storage:
+                return Job(**job_from_storage)
+
         if agent_name:
             # Search in specific agent's jobs
             return self.jobs_by_agent.get(agent_name, {}).get(job_id)
@@ -254,10 +266,8 @@ class Job(AbstractJob):
             job=self,
         )
         # Persist job to storage
-        from supervaizer.storage import StorageManager
 
-        storage = StorageManager()
-        storage.save_object("Job", self.to_dict)
+        storage_manager.save_object("Job", self.to_dict)
 
     def add_response(self, response: JobResponse) -> None:
         """Add a response to the job and update status based on the event lifecycle.
@@ -281,10 +291,8 @@ class Job(AbstractJob):
         self.responses.append(response)
 
         # Persist updated job to storage
-        from supervaizer.storage import StorageManager
 
-        storage = StorageManager()
-        storage.save_object("Job", self.to_dict)
+        storage_manager.save_object("Job", self.to_dict)
 
     def add_case_id(self, case_id: str) -> None:
         """Add a case ID to this job's case list.
@@ -296,10 +304,7 @@ class Job(AbstractJob):
             self.case_ids.append(case_id)
             log.debug(f"Added case {case_id} to job {self.id}")
             # Persist updated job to storage
-            from supervaizer.storage import StorageManager
-
-            storage = StorageManager()
-            storage.save_object("Job", self.to_dict)
+            storage_manager.save_object("Job", self.to_dict)
 
     def remove_case_id(self, case_id: str) -> None:
         """Remove a case ID from this job's case list.
@@ -311,10 +316,7 @@ class Job(AbstractJob):
             self.case_ids.remove(case_id)
             log.debug(f"Removed case {case_id} from job {self.id}")
             # Persist updated job to storage
-            from supervaizer.storage import StorageManager
-
-            storage = StorageManager()
-            storage.save_object("Job", self.to_dict)
+            storage_manager.save_object("Job", self.to_dict)
 
     @property
     def registration_info(self) -> Dict[str, Any]:
