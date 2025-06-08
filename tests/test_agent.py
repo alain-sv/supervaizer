@@ -14,7 +14,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from supervaizer import Agent, AgentMethod, AgentMethods, ApiSuccess, Server
-from supervaizer.agent import AgentMethodsModel
+from supervaizer.agent import AgentMethodsModel, AgentMethodField, FieldTypeEnum
 from supervaizer.job import Job, JobContext
 from supervaizer.parameter import ParametersSetup
 from tests.mock_api_responses import GET_AGENT_BY_SUCCESS_RESPONSE_DETAIL
@@ -72,54 +72,53 @@ def test_fields_annotations_dynamic_model() -> None:
         method="control.job_start",
         params={"action": "start"},
         fields=[
-            {
-                "name": "full_name",
-                "type": str,
-                "field_type": "CharField",
-                "max_length": 100,
-                "required": True,
-            },
-            {
-                "name": "age",
-                "type": int,
-                "field_type": "IntegerField",
-                "required": True,
-            },
-            {
-                "name": "subscribe",
-                "type": bool,
-                "field_type": "BooleanField",
-                "required": False,
-            },
-            {
-                "name": "gender",
-                "type": str,
-                "field_type": "ChoiceField",
-                "choices": [["M", "Male"], ["F", "Female"]],
-                "widget": "RadioSelect",
-                "required": True,
-            },
-            {
-                "name": "bio",
-                "type": str,
-                "field_type": "CharField",
-                "widget": "Textarea",
-                "required": False,
-            },
-            {
-                "name": "country",
-                "type": str,
-                "field_type": "ChoiceField",
-                "choices": [["US", "United States"], ["CA", "Canada"]],
-                "required": True,
-            },
-            {
-                "name": "languages",
-                "type": list[str],
-                "field_type": "MultipleChoiceField",
-                "choices": [["en", "English"], ["fr", "French"], ["es", "Spanish"]],
-                "required": False,
-            },
+            AgentMethodField(
+                name="full_name",
+                type=str,
+                field_type=FieldTypeEnum.CHAR,
+                required=True,
+            ),
+            AgentMethodField(
+                name="age",
+                type=int,
+                field_type=FieldTypeEnum.INT,
+                required=True,
+            ),
+            AgentMethodField(
+                name="subscribe",
+                type=bool,
+                field_type=FieldTypeEnum.BOOL,
+                required=False,
+            ),
+            AgentMethodField(
+                name="gender",
+                type=str,
+                field_type=FieldTypeEnum.CHOICE,
+                choices=[["M", "Male"], ["F", "Female"]],
+                widget="RadioSelect",
+                required=True,
+            ),
+            AgentMethodField(
+                name="bio",
+                type=str,
+                field_type=FieldTypeEnum.CHAR,
+                widget="Textarea",
+                required=False,
+            ),
+            AgentMethodField(
+                name="country",
+                type=str,
+                field_type=FieldTypeEnum.CHOICE,
+                choices=[["US", "United States"], ["CA", "Canada"]],
+                required=True,
+            ),
+            AgentMethodField(
+                name="languages",
+                type=list[str],
+                field_type=FieldTypeEnum.MULTICHOICE,
+                choices=[["en", "English"], ["fr", "French"], ["es", "Spanish"]],
+                required=False,
+            ),
         ],
         description="Start the collection of new competitor summary",
     )

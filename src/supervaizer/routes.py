@@ -179,15 +179,22 @@ def create_default_routes(server: "Server") -> APIRouter:
 
             if filtered_jobs:  # Only include agents that have jobs after filtering
                 # Convert each Job object to JobResponse
-                jobs_responses = [
-                    JobResponse(
-                        job_id=job.id,
-                        status=job.status,
-                        message=f"Job {job.id} status: {job.status.value}",
-                        payload=job.payload,
+                jobs_responses = []
+                for job in filtered_jobs:
+                    job_status = job.status
+                    if isinstance(job_status, str):
+                        try:
+                            job_status = EntityStatus(job_status)
+                        except ValueError:
+                            job_status = EntityStatus.IN_PROGRESS  # fallback or default
+                    jobs_responses.append(
+                        JobResponse(
+                            job_id=job.id,
+                            status=job_status,
+                            message=f"Job {job.id} status: {job_status.value}",
+                            payload=job.payload,
+                        )
                     )
-                    for job in filtered_jobs
-                ]
 
                 all_jobs[agent_name] = jobs_responses
 

@@ -14,7 +14,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing_extensions import Annotated
 
-import supervaizer.storage
+import supervaizer.storage as storage_module
 from supervaizer import (
     Account,
     Agent,
@@ -52,7 +52,7 @@ def storage_manager(temp_db_path: str) -> StorageManager:
     """Create a clean StorageManager instance for testing."""
     # Clear the singleton instance to ensure fresh instance
     # The singleton decorator creates a closure with instances dict
-    storage_get_instance = supervaizer.storage.StorageManager
+    storage_get_instance = storage_module.StorageManager
     if (
         hasattr(storage_get_instance, "__closure__")
         and storage_get_instance.__closure__
@@ -284,3 +284,8 @@ def parameters_fixture(
             Parameter(name="parameter2", value="value2", description="desc2"),
         ]
     )
+
+
+@pytest.fixture(autouse=True, scope="function")
+def reset_storage_manager_singleton_global():
+    storage_module.StorageManager._singleton_instance = None

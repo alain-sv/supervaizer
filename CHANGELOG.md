@@ -31,6 +31,6 @@ All notable changes to this project will be documented in this file.
 | 🤔 Skipped    | 6     |
 | ☑️ Deselected | 0     |
 | ⚠️ Failed     | 0     |
-| ✅ Passed     | 270   |
+| ✅ Passed     | 281   |
 
 Test Coverage : 81%

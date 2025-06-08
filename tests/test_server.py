@@ -84,7 +84,7 @@ def test_server_decrypt(server_fixture: Server) -> None:
 
 
 def test_get_job_status_endpoint(
-    server_fixture: Server, job_fixture: Job, mocker
+    server_fixture: Server, job_fixture: Job, mocker: Any
 ) -> None:
     """Test the get_job_status endpoint"""
     client = TestClient(server_fixture.app)
@@ -96,10 +96,10 @@ def test_get_job_status_endpoint(
     mock_jobs.return_value = mock_jobs_instance
 
     # Use the API key from the server fixture
-    headers = {"X-API-Key": server_fixture.api_key}
+    headers = {"X-API-Key": server_fixture.api_key or ""}
     response = client.get(f"/supervaizer/jobs/{job_fixture.id}", headers=headers)
     assert response.status_code == 200
-    assert response.json()["id"] == job_fixture.id
+    assert response.json()["job_id"] == job_fixture.id
 
     # Test unauthorized access (missing API key)
     response = client.get("/supervaizer/jobs/test-job-id")
